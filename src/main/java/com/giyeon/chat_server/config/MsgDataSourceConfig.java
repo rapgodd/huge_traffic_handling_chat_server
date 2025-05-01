@@ -4,18 +4,30 @@ import com.giyeon.chat_server.component.KeySelector;
 import com.giyeon.chat_server.properties.DataSourceProperty;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import jakarta.persistence.EntityManagerFactory;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.jdbc.datasource.LazyConnectionDataSourceProxy;
+import org.springframework.orm.jpa.JpaTransactionManager;
+import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
 import java.util.HashMap;
 import java.util.Map;
 
+@EnableJpaRepositories(
+        basePackages = "com.giyeon.chat_server.repository.message",
+        entityManagerFactoryRef = "messageEntityManagerFactory",
+        transactionManagerRef = "messagePlatformTransactionManager"
+)
 @Configuration
 @RequiredArgsConstructor
-public class DataSourceConfiguration {
+public class MsgDataSourceConfig {
 
     private final DataSourceProperty dataSourceProperty;
 
@@ -31,7 +43,7 @@ public class DataSourceConfiguration {
     }
 
     @Bean
-    public DataSource dataSource(){
+    public DataSource messageDataSource(){
         Map<Object, Object> dataSourcesMap = new HashMap<>();
         KeySelector keySelector = new KeySelector();
 
@@ -48,6 +60,17 @@ public class DataSourceConfiguration {
         return new LazyConnectionDataSourceProxy(new RoutingDataSource(dataSourcesMap,keySelector));
     }
 
+    @Bean
+    public LocalContainerEntityManagerFactoryBean messageEntityManagerFactory(EntityManagerFactoryBuilder builder) {
+        return builder
+                .dataSource(messageDataSource())
+                .packages("com.giyeon.chat_server.entity.message")
+                .persistenceUnit("message")
+                .build();
+    }
 
-
+    @Bean
+    public PlatformTransactionManager messagePlatformTransactionManager(@Qualifier("messageEntityManagerFactory") EntityManagerFactory emFactoryBean) {
+        return new JpaTransactionManager(emFactoryBean);
+    }
 }

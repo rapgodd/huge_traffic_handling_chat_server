@@ -1,4 +1,4 @@
-package com.giyeon.chat_server.entity;
+package com.giyeon.chat_server.entity.message;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -17,5 +17,6 @@ public class Message {
     private Long id;
 
     private String message;
+    private Long roomId;
 
 }

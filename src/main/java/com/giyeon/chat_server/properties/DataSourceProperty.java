@@ -16,6 +16,7 @@ public class DataSourceProperty {
     private String username;
     private String password;
     private List<Shard> shardList;
+    private Main mainDb;
 
 
     @AllArgsConstructor
@@ -27,5 +28,16 @@ public class DataSourceProperty {
         private String url;
 
     }
+
+    @AllArgsConstructor
+    @Getter
+    @ToString
+    public static class Main{
+
+        private String key;
+        private String url;
+
+    }
+
 
 }

@@ -1,7 +1,9 @@
 package com.giyeon.chat_server.component;
 
+
 import com.github.snksoft.crc.CRC;
 import lombok.Getter;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;

@@ -1,5 +1,6 @@
 package com.giyeon.chat_server.annotation;
 
+
 import com.giyeon.chat_server.entity.ShardTarget;
 
 import java.lang.annotation.ElementType;
@@ -12,3 +13,4 @@ import java.lang.annotation.Target;
 public @interface Sharding {
     ShardTarget target() default ShardTarget.MESSAGE;
 }
+
