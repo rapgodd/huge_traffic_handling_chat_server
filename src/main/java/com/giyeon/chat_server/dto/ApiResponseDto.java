@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @Builder
-public class MessageDto {
-    private String message;
-    private String sender;
+public class ApiResponseDto<T> {
+    private int code;
+    private T data;
 }

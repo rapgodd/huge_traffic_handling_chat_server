@@ -1,6 +1,6 @@
-package com.giyeon.chat_server.config;
+package com.giyeon.chat_server.config.shard;
 
-import com.giyeon.chat_server.component.KeySelector;
+import com.giyeon.chat_server.component.MsgKeySelector;
 import com.giyeon.chat_server.properties.DataSourceProperty;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -45,7 +45,7 @@ public class MsgDataSourceConfig {
     @Bean
     public DataSource messageDataSource(){
         Map<Object, Object> dataSourcesMap = new HashMap<>();
-        KeySelector keySelector = new KeySelector();
+        MsgKeySelector keySelector = new MsgKeySelector();
 
         dataSourceProperty.getShardList().forEach(shard -> {
             DataSource dataSource = createDataSource(shard.getUrl(),
@@ -57,7 +57,7 @@ public class MsgDataSourceConfig {
             keySelector.getShardList().add(shard.getKey());
         });
 
-        return new LazyConnectionDataSourceProxy(new RoutingDataSource(dataSourcesMap,keySelector));
+        return new LazyConnectionDataSourceProxy(new MsgRoutingDataSource(dataSourcesMap,keySelector));
     }
 
     @Bean

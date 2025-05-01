@@ -15,28 +15,16 @@ public class DataSourceProperty {
 
     private String username;
     private String password;
-    private List<Shard> shardList;
-    private Main mainDb;
-
-
-    @AllArgsConstructor
-    @Getter
-    @ToString
-    public static class Shard{
-
-        private String key;
-        private String url;
-
-    }
+    private List<DataSourceDto> shardList;
+    private DataSourceDto mainDb;
+    private List<DataSourceDto> slaves;
 
     @AllArgsConstructor
     @Getter
     @ToString
-    public static class Main{
-
+    public static class DataSourceDto{
         private String key;
         private String url;
-
     }
 
 

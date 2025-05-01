@@ -1,0 +1,44 @@
+package com.giyeon.chat_server.service;
+
+import com.giyeon.chat_server.annotation.Sharding;
+import com.giyeon.chat_server.dto.MessageDto;
+import com.giyeon.chat_server.entity.message.Message;
+import com.giyeon.chat_server.repository.message.MessageRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class MessageRepositoryService {
+
+    private final MessageRepository messageRepository;
+
+    @Sharding
+    @Transactional(value = "messagePlatformTransactionManager")
+    public Message insertMessage(Long roomId) {
+        Message message = new Message();
+        message.setRoomId(roomId);
+
+        messageRepository.save(message);
+        return message;
+    }
+
+    @Sharding
+    @Transactional(value = "messagePlatformTransactionManager")
+    public List<MessageDto> getMessages(Long roomId) {
+        List<MessageDto> messageDtoList = new ArrayList<>();
+
+        messageRepository.findByRoomId(roomId).forEach(msg->{
+            messageDtoList.add(MessageDto.builder()
+                    .message(msg.getMessage())
+                    .sender("giyeon")
+                    .build());
+        });
+
+        return messageDtoList;
+    }
+}
