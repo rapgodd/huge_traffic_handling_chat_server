@@ -1,7 +1,7 @@
 package com.giyeon.chat_server.controller;
 
 import com.giyeon.chat_server.dto.ApiResponseDto;
-import com.giyeon.chat_server.entity.main.Room;
+import com.giyeon.chat_server.entity.main.ChatRoom;
 import com.giyeon.chat_server.service.MainService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,7 +23,7 @@ public class RoomController {
 
     @GetMapping("/tx/readonly")
     public ApiResponseDto<?> getReadOnly() {
-        List<Room> readOnly = mainService.getReadOnly();
+        List<ChatRoom> readOnly = mainService.getReadOnly();
         return ApiResponseDto.builder()
                 .code(200)
                 .data(readOnly)
@@ -32,7 +32,7 @@ public class RoomController {
 
     @GetMapping("/tx")
     public ApiResponseDto<?> getReadOnlyFalse() {
-        List<Room> readOnlyFalse = mainService.getReadOnlyFalse();
+        List<ChatRoom> readOnlyFalse = mainService.getReadOnlyFalse();
         return ApiResponseDto.builder()
                 .code(200)
                 .data(readOnlyFalse)

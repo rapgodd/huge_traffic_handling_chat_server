@@ -1,6 +1,6 @@
 package com.giyeon.chat_server.service;
 
-import com.giyeon.chat_server.entity.main.Room;
+import com.giyeon.chat_server.entity.main.ChatRoom;
 import com.giyeon.chat_server.repository.main.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,12 +20,12 @@ public class MainService {
     }
 
     @Transactional(readOnly = true)
-    public List<Room> getReadOnly() {
+    public List<ChatRoom> getReadOnly() {
         return roomRepository.findAll();
     }
 
     @Transactional
-    public List<Room> getReadOnlyFalse() {
+    public List<ChatRoom> getReadOnlyFalse() {
         return roomRepository.findAll();
     }
 }

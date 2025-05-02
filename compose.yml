@@ -1,0 +1,94 @@
+services:
+  my-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    networks:
+      - chat_server
+    ports:
+      - 8080:8080
+      - 5005:5005
+    environment:
+      REDIS_CLUSTER_NODES: "redis-node-1:6379,redis-node-2:6379,redis-node-3:6379,redis-node-4:6379,redis-node-5:6379,redis-node-6:6379"
+      REDIS_CLUSTER_MAX_REDIRECTS: 3
+    depends_on:
+      redis-node-1:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+
+
+  mysql:
+    image: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+    volumes:
+      - chat-volume:/var/lib/mysql
+    ports:
+      - 3306:3306
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping" ]
+      interval: 5s
+      retries: 10
+    networks:
+      - chat_server
+
+
+  redis-node-1:
+    image: redis:latest
+    command: ["--cluster-enabled", "yes"]
+    networks:
+      - chat_server
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+
+  redis-node-2:
+    image: redis:latest
+    command: ["--cluster-enabled", "yes"]
+    networks:
+      - chat_server
+    ports:
+      - "6380:6379"
+
+  redis-node-3:
+    image: redis:latest
+    command: ["--cluster-enabled", "yes"]
+    networks:
+      - chat_server
+    ports:
+      - "6381:6379"
+
+  redis-node-4:
+    image: redis:latest
+    command: ["--cluster-enabled", "yes"]
+    networks:
+      - chat_server
+    ports:
+      - "6382:6379"
+
+  redis-node-5:
+    image: redis:latest
+    command: ["--cluster-enabled", "yes"]
+    networks:
+      - chat_server
+    ports:
+      - "6383:6379"
+
+  redis-node-6:
+    image: redis:latest
+    command: ["--cluster-enabled", "yes"]
+    networks:
+      - chat_server
+    ports:
+      - "6384:6379"
+volumes:
+  chat-volume:
+    external: true
+networks:
+  chat_server:
+    driver: bridge
