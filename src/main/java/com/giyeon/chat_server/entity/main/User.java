@@ -1,22 +1,20 @@
 package com.giyeon.chat_server.entity.main;
 
-
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.ToString;
 
-import java.time.LocalDateTime;
-
+@Table(name = "users")
 @Entity
-@Table(name = "room")
 @Getter
 @ToString
-public class Room {
+public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private LocalDateTime createdAt;
+    private String email;
+    private String password;
+
 
 }
