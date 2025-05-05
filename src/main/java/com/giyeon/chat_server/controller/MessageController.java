@@ -1,7 +1,9 @@
 package com.giyeon.chat_server.controller;
 
 import com.giyeon.chat_server.dto.ApiResponseDto;
+import com.giyeon.chat_server.dto.ChatDto;
 import com.giyeon.chat_server.service.MessageRepositoryService;
+import com.giyeon.chat_server.service.MessageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,14 +12,25 @@ import org.springframework.web.bind.annotation.*;
 public class MessageController {
 
     private final MessageRepositoryService messageRepositoryService;
+    private final MessageService messageService;
 
 
-    @GetMapping("/message")
+    @GetMapping("/api/message")
     public ApiResponseDto<?> getMessages(@RequestParam(name = "room") Long roomId){
         return ApiResponseDto.builder()
                 .code(200)
                 .data(messageRepositoryService.getMessages(roomId))
                 .build();
     }
+
+    @PostMapping("/api/message")
+    public ApiResponseDto<?> insertMessage(@RequestBody ChatDto chatDto) {
+        messageService.sendMessage(chatDto);
+        return ApiResponseDto.builder()
+                .code(200)
+                .data("ok")
+                .build();
+    }
+
 
 }

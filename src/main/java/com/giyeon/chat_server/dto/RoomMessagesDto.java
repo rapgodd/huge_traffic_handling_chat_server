@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @Builder
-public class MessageDto {
+public class RoomMessagesDto {
     private String message;
     private String sender;
 }

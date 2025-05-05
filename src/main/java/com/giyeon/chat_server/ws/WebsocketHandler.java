@@ -13,6 +13,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -25,19 +26,7 @@ public class WebsocketHandler extends TextWebSocketHandler {
     private RedisTemplate<String, String> redisTemplate;
 
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-
-        //유저id, 방id, session, message 뽑아서 넘겨주기
-        Long userId = (Long) session.getAttributes().get("userId");
-        System.out.println("userId = " + userId);
-        Long roomId = (Long) session.getAttributes().get("roomId");
-        System.out.println("roomId = " + roomId);
-        String payload = message.getPayload();
-        System.out.println("payload = " + payload);
-
-        //비즈니스 로직 호출
-        messageService.sendMessage(userId,roomId,payload);
-
+    protected void handleTextMessage(WebSocketSession session, TextMessage message){
     }
 
     @Override

@@ -2,7 +2,7 @@ package com.giyeon.chat_server.service;
 
 import com.giyeon.chat_server.annotation.Sharding;
 import com.giyeon.chat_server.component.IdGenerator;
-import com.giyeon.chat_server.dto.MessageDto;
+import com.giyeon.chat_server.dto.RoomMessagesDto;
 import com.giyeon.chat_server.entity.message.Message;
 import com.giyeon.chat_server.repository.message.MessageRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,11 +35,11 @@ public class MessageRepositoryService {
 
     @Sharding
     @Transactional(value = "messagePlatformTransactionManager")
-    public List<MessageDto> getMessages(Long roomId) {
-        List<MessageDto> messageDtoList = new ArrayList<>();
+    public List<RoomMessagesDto> getMessages(Long roomId) {
+        List<RoomMessagesDto> messageDtoList = new ArrayList<>();
 
         messageRepository.findByRoomId(roomId).forEach(msg->{
-            messageDtoList.add(MessageDto.builder()
+            messageDtoList.add(RoomMessagesDto.builder()
                     .message(msg.getMessage())
                     .sender("giyeon")
                     .build());
