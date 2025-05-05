@@ -7,7 +7,6 @@ import lombok.ToString;
 @Table(name = "users")
 @Entity
 @Getter
-@ToString
 public class User {
 
     @Id

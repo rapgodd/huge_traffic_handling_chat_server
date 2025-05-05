@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package com.giyeon.chat_server;
+
+// 사용자 식별과 메시지 내용을 포함한 요청 메시지
+message SendMessageRequest {
+  int64 userId = 1;
+  string content = 2;
+}
+
+// 전송 결과를 알려주는 응답 메시지
+message SendMessageResponse {
+  bool success = 1;
+  string errorMessage = 2;
+}
+
+// 채팅 서비스를 정의
+service CommunicationService {
+  // SendMessage RPC: 다른 서버의 사용자에게 메시지 전달
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
+}

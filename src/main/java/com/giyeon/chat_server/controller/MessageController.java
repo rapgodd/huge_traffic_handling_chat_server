@@ -11,10 +11,6 @@ public class MessageController {
 
     private final MessageRepositoryService messageRepositoryService;
 
-    @PostMapping("/")
-    public String insertMessage(@RequestBody Long id){
-        return messageRepositoryService.insertMessage(id).toString();
-    }
 
     @GetMapping("/message")
     public ApiResponseDto<?> getMessages(@RequestParam(name = "room") Long roomId){

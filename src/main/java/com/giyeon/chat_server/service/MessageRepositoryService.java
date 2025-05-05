@@ -1,6 +1,7 @@
 package com.giyeon.chat_server.service;
 
 import com.giyeon.chat_server.annotation.Sharding;
+import com.giyeon.chat_server.component.IdGenerator;
 import com.giyeon.chat_server.dto.MessageDto;
 import com.giyeon.chat_server.entity.message.Message;
 import com.giyeon.chat_server.repository.message.MessageRepository;
@@ -16,15 +17,20 @@ import java.util.List;
 public class MessageRepositoryService {
 
     private final MessageRepository messageRepository;
+    private final IdGenerator idGenerator;
 
     @Sharding
     @Transactional(value = "messagePlatformTransactionManager")
-    public Message insertMessage(Long roomId) {
-        Message message = new Message();
-        message.setRoomId(roomId);
+    public void insertMessage(Long roomId, String message) {
 
-        messageRepository.save(message);
-        return message;
+        Message userMessage = Message.builder()
+                .id(idGenerator.nextId())
+                .message(message)
+                .roomId(roomId)
+                .build();
+
+        messageRepository.save(userMessage);
+        System.out.println("insertMessage: " + userMessage);
     }
 
     @Sharding

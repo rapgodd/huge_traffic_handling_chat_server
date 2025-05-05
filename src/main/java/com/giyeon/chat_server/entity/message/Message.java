@@ -1,15 +1,16 @@
 package com.giyeon.chat_server.entity.message;
 
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 @Table(name = "message")
 @Entity
 @ToString
 @Getter
-@Setter
+@NoArgsConstructor
 public class Message {
 
     @Id
@@ -18,4 +19,10 @@ public class Message {
     private String message;
     private Long roomId;
 
+    @Builder
+    public Message(Long id,String message,Long roomId){
+        this.id = id;
+        this.message = message;
+        this.roomId = roomId;
+    }
 }

@@ -11,7 +11,6 @@ import java.util.List;
 @Entity
 @Table(name = "room")
 @Getter
-@ToString
 public class ChatRoom {
 
     @Id

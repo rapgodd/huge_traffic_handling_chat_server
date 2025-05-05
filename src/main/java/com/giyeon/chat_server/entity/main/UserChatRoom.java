@@ -8,7 +8,6 @@ import lombok.ToString;
 @Entity
 @Table(name = "user_chat_rooms")
 @Getter
-@ToString
 public class UserChatRoom {
 
     @Id

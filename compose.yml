@@ -1,5 +1,5 @@
 services:
-  my-server:
+  my-server-1:
     build:
       context: .
       dockerfile: Dockerfile
@@ -8,15 +8,36 @@ services:
     ports:
       - 8080:8080
       - 5005:5005
+      - 9090:9090
     environment:
       REDIS_CLUSTER_NODES: "redis-node-1:6379,redis-node-2:6379,redis-node-3:6379,redis-node-4:6379,redis-node-5:6379,redis-node-6:6379"
       REDIS_CLUSTER_MAX_REDIRECTS: 3
+      SPRING_PROFILES_ACTIVE: "first"
     depends_on:
       redis-node-1:
         condition: service_healthy
       mysql:
         condition: service_healthy
 
+  my-server-2:
+    build:
+      context: .
+      dockerfile: DockerfileSecond
+    networks:
+      - chat_server
+    ports:
+      - 8081:8080
+      - 9091:9090
+      - 5006:5006
+    environment:
+      REDIS_CLUSTER_NODES: "redis-node-1:6379,redis-node-2:6379,redis-node-3:6379,redis-node-4:6379,redis-node-5:6379,redis-node-6:6379"
+      REDIS_CLUSTER_MAX_REDIRECTS: 3
+      SPRING_PROFILES_ACTIVE: "second"
+    depends_on:
+      redis-node-1:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
 
   mysql:
     image: mysql

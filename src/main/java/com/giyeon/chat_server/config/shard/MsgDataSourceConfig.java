@@ -37,8 +37,8 @@ public class MsgDataSourceConfig {
         hc.setUsername(username);
         hc.setPassword(password);
         hc.setDriverClassName("com.mysql.cj.jdbc.Driver");
-        hc.setMaximumPoolSize(20);
-        hc.setMinimumIdle(20);
+        hc.setMaximumPoolSize(3);
+        hc.setMinimumIdle(3);
         return new HikariDataSource(hc);
     }
 
