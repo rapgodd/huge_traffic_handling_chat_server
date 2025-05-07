@@ -2,7 +2,7 @@ package com.giyeon.chat_server.controller;
 
 import com.giyeon.chat_server.dto.ApiResponseDto;
 import com.giyeon.chat_server.dto.ChatDto;
-import com.giyeon.chat_server.service.MessageRepositoryService;
+import com.giyeon.chat_server.service.repositoryService.MessageRepositoryService;
 import com.giyeon.chat_server.service.MessageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -24,7 +24,7 @@ public class MessageController {
     }
 
     @PostMapping("/api/message")
-    public ApiResponseDto<?> insertMessage(@RequestBody ChatDto chatDto) {
+    public ApiResponseDto<?> sendMessage(@RequestBody ChatDto chatDto) {
         messageService.sendMessage(chatDto);
         return ApiResponseDto.builder()
                 .code(200)

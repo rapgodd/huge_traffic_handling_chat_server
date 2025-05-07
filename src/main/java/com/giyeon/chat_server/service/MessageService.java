@@ -5,9 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.giyeon.chat_server.component.GrpcChatClient;
 import com.giyeon.chat_server.dto.ChatDto;
 import com.giyeon.chat_server.dto.RoomUsersDto;
-import com.giyeon.chat_server.entity.main.UserChatRoom;
-import com.giyeon.chat_server.service.MainRepositoryService;
-import com.giyeon.chat_server.service.MessageRepositoryService;
+import com.giyeon.chat_server.service.repositoryService.MainRepositoryService;
+import com.giyeon.chat_server.service.repositoryService.MessageRepositoryService;
 import com.giyeon.chat_server.ws.SessionRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,8 +16,6 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
 
 @Service
@@ -33,7 +30,7 @@ public class MessageService{
     private RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
     private final ThreadPoolExecutor threadPoolExecutor;
-
+    private final ThreadSendingService threadSendingService;
 
     public void sendMessage(ChatDto chatDto) {
 
@@ -70,7 +67,7 @@ public class MessageService{
                     System.out.println("IP = " + IP+"\n");
 
                     if(IP!=null){
-                        grpcClient.send(json,IP.split(":")[0],Integer.parseInt(IP.split(":")[1]),userChatRoom.getUser().getId());
+                        threadSendingService.addMessageToQueue(json,IP.split(":")[0],Integer.parseInt(IP.split(":")[1]),roomId,userChatRoom.getUser().getId());
                     }
 
                 }
