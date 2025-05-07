@@ -1,7 +1,10 @@
 package com.giyeon.chat_server.service;
 
+import com.giyeon.chat_server.component.IdGenerator;
 import com.giyeon.chat_server.dto.AuthTokenDto;
 import com.giyeon.chat_server.dto.LoginRequestDto;
+import com.giyeon.chat_server.dto.SignupDto;
+import com.giyeon.chat_server.entity.main.Role;
 import com.giyeon.chat_server.entity.main.User;
 import com.giyeon.chat_server.repository.main.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +13,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,10 +26,12 @@ import static com.giyeon.chat_server.util.JwtUtil.createRefreshToken;
 
 @Service
 @RequiredArgsConstructor
-public class LoginService {
+public class AuthService {
 
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
     private final UserRepository userRepository;
+    private final IdGenerator idGenerator;
+    private final PasswordEncoder passwordEncoder;
 
     private static final Long ACCESS_TOKEN_EXPIRATION_TIME = 1000 * 60 * 30L;
     private static final Long REFRESH_TOKEN_EXPIRATION_TIME = 1000 * 60 * 60 * 24 * 30L;
@@ -83,5 +89,23 @@ public class LoginService {
     @Value("${jwt.secret}")
     public void setKey(String key){
         JWT_SECRET_KEY = key;
+    }
+
+    @Transactional
+    public AuthTokenDto signup(SignupDto signupDto) {
+
+        User user = User.builder()
+                .id(idGenerator.nextId())
+                .name(signupDto.getName())
+                .email(signupDto.getEmail())
+                .password(passwordEncoder.encode(signupDto.getPassword()))
+                .userRole(Role.ROLE_USER)
+                .build();
+
+        userRepository.save(user);
+
+        return AuthTokenDto.builder()
+                .userId(user.getId())
+                .build();
     }
 }

@@ -20,8 +20,7 @@ public class SecurityConfig {
 
     private static String JWT_SECRET_KEY;
     public static final String[] PERMIT_URLS = {
-            "/api/login",
-            "/api/refresh"
+            "/api/auth/**"
     };
 
 
