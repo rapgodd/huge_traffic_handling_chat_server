@@ -3,12 +3,14 @@ package com.giyeon.chat_server.service.repositoryService;
 import com.giyeon.chat_server.annotation.Sharding;
 import com.giyeon.chat_server.component.IdGenerator;
 import com.giyeon.chat_server.dto.RoomMessagesDto;
+import com.giyeon.chat_server.entity.main.ChatRoom;
 import com.giyeon.chat_server.entity.message.Message;
 import com.giyeon.chat_server.repository.message.MessageRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,4 +49,26 @@ public class MessageRepositoryService {
 
         return messageDtoList;
     }
+
+    @Sharding
+    @Transactional(value = "messagePlatformTransactionManager")
+    public List<Message> getMessagesGreaterThan(Long roomId, LocalDateTime leavedAt) {
+        List<Message> unreadMessages = messageRepository.findByRoomIdAndCreatedAtGreaterThan(roomId, leavedAt);
+
+        if(unreadMessages.isEmpty()){
+
+            Message message = messageRepository.findTopByRoomIdOrderByCreatedAtDesc(roomId).orElse(
+                    Message.builder()
+                            .message(" ")
+                            .roomId(roomId)
+                            .build()
+            );
+            return List.of(message);
+
+        }else{
+            return unreadMessages;
+        }
+
+    }
+
 }

@@ -14,24 +14,4 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RoomController {
 
-    private final MainRepositoryService mainRepositoryService;
-
-    @GetMapping("/tx/readonly")
-    public ApiResponseDto<?> getReadOnly() {
-        List<ChatRoom> readOnly = mainRepositoryService.getReadOnly();
-        return ApiResponseDto.builder()
-                .code(200)
-                .data(readOnly)
-                .build();
-    }
-
-    @GetMapping("/tx")
-    public ApiResponseDto<?> getReadOnlyFalse() {
-        List<ChatRoom> readOnlyFalse = mainRepositoryService.getReadOnlyFalse();
-        return ApiResponseDto.builder()
-                .code(200)
-                .data(readOnlyFalse)
-                .build();
-    }
-
 }

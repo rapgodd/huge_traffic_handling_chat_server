@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+import java.time.LocalDateTime;
+
 @Table(name = "message")
 @Entity
 @ToString
@@ -18,6 +20,8 @@ public class Message {
 
     private String message;
     private Long roomId;
+    private Long senderId;
+    private LocalDateTime createdAt;
 
     @Builder
     public Message(Long id,String message,Long roomId){

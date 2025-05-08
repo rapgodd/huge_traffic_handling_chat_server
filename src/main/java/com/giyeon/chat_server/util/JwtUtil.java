@@ -1,18 +1,20 @@
 package com.giyeon.chat_server.util;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpHeaders;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 
 public final class JwtUtil {
 
-    private JwtUtil() {
 
-    }
+
 
     public static String createAccessToken(Long userId, List<String> roles, byte[] bytes, Long ACCESS_TOKEN_EXPIRATION_TIME) {
         return Jwts.builder()
@@ -55,6 +57,37 @@ public final class JwtUtil {
                 .parseClaimsJws(token)
                 .getBody();
         return claims;
+    }
+
+    public static Long getUserId(String JWT_SECRET_KEY) {
+        String accessToken = JwtUtil.getAccessToken();
+        Claims body = JwtUtil.parseClaims(accessToken, JWT_SECRET_KEY);
+        String id = body.get("sub", String.class);
+
+        return Long.valueOf(id);
+    }
+
+    public static String getAccessToken(){
+        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
+        String authorizationHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+        String token = null;
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            token = authorizationHeader.substring(7);
+        }
+        else {
+            throw new JwtException("JWT 토큰이 없습니다.");
+        }
+
+        return token;
+    }
+
+    public static Claims parseClaims(String token, String JWT_SECRET_KEY){
+        try{
+            return Jwts.parserBuilder().setSigningKey(JWT_SECRET_KEY.getBytes(StandardCharsets.UTF_8)).build().parseClaimsJws(token).getBody();
+        }
+        catch (ExpiredJwtException e){
+            return e.getClaims();
+        }
     }
 
 
