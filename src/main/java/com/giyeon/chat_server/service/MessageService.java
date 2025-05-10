@@ -2,7 +2,6 @@ package com.giyeon.chat_server.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.giyeon.chat_server.component.GrpcChatClient;
 import com.giyeon.chat_server.dto.ChatDto;
 import com.giyeon.chat_server.dto.RoomUsersDto;
 import com.giyeon.chat_server.service.repositoryService.MainRepositoryService;
@@ -25,7 +24,6 @@ public class MessageService{
     private final SessionRegistry sessionRegistry;
     private final MainRepositoryService mainRepositoryService;
     private final MessageRepositoryService messageRepositoryService;
-    private final GrpcChatClient grpcClient;
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;

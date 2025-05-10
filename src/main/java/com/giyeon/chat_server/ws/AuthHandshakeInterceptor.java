@@ -1,5 +1,9 @@
 package com.giyeon.chat_server.ws;
 
+import com.giyeon.chat_server.properties.DataSourceProperty;
+import com.giyeon.chat_server.properties.JwtProperty;
+import com.giyeon.chat_server.util.JwtUtil;
+import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.env.Environment;
 import org.springframework.http.server.ServerHttpRequest;
@@ -12,23 +16,24 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AuthHandshakeInterceptor implements HandshakeInterceptor {
 
-    private final Environment environment;
+    private final JwtProperty jwtProperty;
 
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Map<String, Object> attributes) throws Exception {
 
-        // 방 ID 저장
-        String path = request.getURI().getPath();                // "/ws/chat/123"
-        String[] segments = path.split("/");               // ["", "ws", "chat", "123"]
-
+        // 파라미터에 ws/mypath/{token}이 들어오면 토큰 추출하여서 유저 ID 파싱
+        String path = request.getURI().getPath();
+        String[] segments = path.split("/");
         if(segments.length==4){
-            String roomIdStr = segments[segments.length - 1];        // "123"
-            Long roomId = Long.valueOf(roomIdStr);
-            attributes.put("roomId", roomId);
-            attributes.put("userId", Long.valueOf(environment.getProperty("user.id")));
+            String token = segments[segments.length - 1];
+            Claims claim = JwtUtil.parseClaims(token, jwtProperty.getSecret());
+            String userId = claim.get("sub", String.class);
+            attributes.put("userId", userId);
             return true;
+        }else{
+            return false;
         }
-        return false;
+
     }
 
     @Override
