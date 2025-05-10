@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -44,5 +45,10 @@ public class MainRepositoryService {
 
     public void saveAllUserChatRoom(List<UserChatRoom> userChatRooms) {
         userChatRoomRepository.saveAll(userChatRooms);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChatRoom> getRoomList(ArrayList<Long> roomIds) {
+        return roomRepository.findAllUserChatRooms(roomIds);
     }
 }

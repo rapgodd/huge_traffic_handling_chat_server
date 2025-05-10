@@ -11,6 +11,7 @@ import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.LazyConnectionDataSourceProxy;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
@@ -30,6 +31,7 @@ import java.util.Map;
 public class MsgDataSourceConfig {
 
     private final DataSourceProperty dataSourceProperty;
+    private final MsgKeySelector keySelector;
 
     public DataSource createDataSource(String url, String username, String password){
         HikariConfig hc = new HikariConfig();
@@ -45,7 +47,6 @@ public class MsgDataSourceConfig {
     @Bean
     public DataSource messageDataSource(){
         Map<Object, Object> dataSourcesMap = new HashMap<>();
-        MsgKeySelector keySelector = new MsgKeySelector();
 
         dataSourceProperty.getShardList().forEach(shard -> {
             DataSource dataSource = createDataSource(shard.getUrl(),
@@ -72,5 +73,16 @@ public class MsgDataSourceConfig {
     @Bean
     public PlatformTransactionManager messagePlatformTransactionManager(@Qualifier("messageEntityManagerFactory") EntityManagerFactory emFactoryBean) {
         return new JpaTransactionManager(emFactoryBean);
+    }
+
+    //jdbc
+    @Bean
+    public PlatformTransactionManager jdbcTransactionManager(@Qualifier("messageEntityManagerFactory") EntityManagerFactory emFactoryBean) {
+        return new JpaTransactionManager(emFactoryBean);
+    }
+
+    @Bean
+    public JdbcTemplate jdbcTemplate(@Qualifier("messageDataSource") DataSource dataSource) {
+        return new JdbcTemplate(dataSource);
     }
 }

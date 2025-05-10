@@ -2,9 +2,11 @@ package com.giyeon.chat_server.service.repositoryService;
 
 import com.giyeon.chat_server.annotation.Sharding;
 import com.giyeon.chat_server.component.IdGenerator;
+import com.giyeon.chat_server.dto.MessageJdbcDto;
 import com.giyeon.chat_server.dto.RoomMessagesDto;
 import com.giyeon.chat_server.entity.main.ChatRoom;
 import com.giyeon.chat_server.entity.message.Message;
+import com.giyeon.chat_server.repository.message.MessageJdbcRepository;
 import com.giyeon.chat_server.repository.message.MessageRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -12,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 @Service
@@ -20,6 +23,7 @@ public class MessageRepositoryService {
 
     private final MessageRepository messageRepository;
     private final IdGenerator idGenerator;
+    private final MessageJdbcRepository messageJdbcRepository;
 
     @Sharding
     @Transactional(value = "messagePlatformTransactionManager")
@@ -69,6 +73,13 @@ public class MessageRepositoryService {
             return unreadMessages;
         }
 
+    }
+
+    @Sharding
+    @Transactional(value = "jdbcTransactionManager")
+    public List<MessageJdbcDto> getAggregates(Long roomId, HashMap<Long,LocalDateTime> shardMap) {
+        List<MessageJdbcDto> messageJdbcDtos = messageJdbcRepository.fetchAggregates(shardMap);
+        return messageJdbcDtos;
     }
 
 }

@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Repository
@@ -18,4 +19,6 @@ public interface RoomRepository extends JpaRepository<ChatRoom,Long> {
     ChatRoom findUsersInRoom(@Param("roomId") Long roomId);
 
 
+    @Query("select r from ChatRoom r join fetch r.userChatRooms uc join fetch uc.user where r.id in :roomIds")
+    List<ChatRoom> findAllUserChatRooms(ArrayList<Long> roomIds);
 }

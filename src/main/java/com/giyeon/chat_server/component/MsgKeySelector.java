@@ -3,11 +3,13 @@ package com.giyeon.chat_server.component;
 
 import com.github.snksoft.crc.CRC;
 import lombok.Getter;
+import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+@Component
 public class MsgKeySelector {
 
     @Getter
@@ -21,10 +23,10 @@ public class MsgKeySelector {
 
         byte[] bytes = String.valueOf(id).getBytes(StandardCharsets.UTF_8);
         int key = (int) CRC.calculateCRC(CRC.Parameters.CCITT, bytes) & 0x3FFF; //key -> String -> byte -> crc16
-        return getShardKey(key);
+        return distribute(key);
     }
 
-    private String getShardKey(long key) {
+    private String distribute(long key) {
         // 0~5460 , 5461~10921 , 10922~16383
         if(0<=key&&key<=5460){
             System.out.println("0번째 샤드가 사용됩니다.");
@@ -38,4 +40,5 @@ public class MsgKeySelector {
         }
 
     }
+
 }
