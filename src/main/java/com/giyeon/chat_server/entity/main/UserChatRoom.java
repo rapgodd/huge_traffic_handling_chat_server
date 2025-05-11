@@ -28,7 +28,11 @@ public class UserChatRoom {
     private LocalDateTime leavedAt;
 
 
-    public void leaveRoom(LocalDateTime now) {
+    public void updateToNow(LocalDateTime now) {
         this.leavedAt = now;
+    }
+
+    public void updateToNull(){
+        this.leavedAt = null;
     }
 }

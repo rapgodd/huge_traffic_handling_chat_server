@@ -13,7 +13,6 @@ import com.giyeon.chat_server.service.repositoryService.MessageRepositoryService
 import com.giyeon.chat_server.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -211,6 +210,11 @@ public class RoomService {
 
     public void leaveRoom(Long roomId) {
         Long userId = JwtUtil.getUserId(jwtProperty.getSecret());
-        mainRepositoryService.updateLeavedAt(roomId,userId);
+        mainRepositoryService.updateLeavedAtToNow(roomId,userId);
+    }
+
+    public void joinRoom(Long roomId) {
+        Long userId = JwtUtil.getUserId(jwtProperty.getSecret());
+        mainRepositoryService.updateLeavedAtToNull(roomId, userId);
     }
 }

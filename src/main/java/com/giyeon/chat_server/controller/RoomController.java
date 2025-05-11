@@ -23,4 +23,14 @@ public class RoomController {
                 .build();
     }
 
+    @PostMapping("/api/room/{roomId}/join")
+    public ApiResponseDto<?> joinRoom(@PathVariable Long roomId) {
+        roomService.joinRoom(roomId);
+        return ApiResponseDto.builder()
+                .code(200)
+                .data("successfully joined the room")
+                .build();
+    }
+
+
 }

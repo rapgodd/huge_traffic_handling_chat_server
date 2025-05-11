@@ -32,18 +32,20 @@ public class MainRepositoryService {
         return userChatRoomRepository.findByUserOrderByChatRoom_LastMessageTimeDesc(user, pageable).getContent();
     }
 
-    public void saveAllUserChatRoom(List<UserChatRoom> userChatRooms) {
-        userChatRoomRepository.saveAll(userChatRooms);
-    }
-
     @Transactional(readOnly = true)
     public List<ChatRoom> getRoomList(ArrayList<Long> roomIds) {
         return roomRepository.findAllUserChatRooms(roomIds);
     }
 
     @Transactional(readOnly = false)
-    public void updateLeavedAt(Long roomId, Long userId) {
+    public void updateLeavedAtToNow(Long roomId, Long userId) {
         UserChatRoom userInRoom = userChatRoomRepository.findUserInRoom(userId, roomId);
-        userInRoom.leaveRoom(LocalDateTime.now());
+        userInRoom.updateToNow(LocalDateTime.now());
+    }
+
+    @Transactional(readOnly = false)
+    public void updateLeavedAtToNull(Long roomId, Long userId) {
+        UserChatRoom userChatRoom = userChatRoomRepository.findUserInRoom(userId, roomId);
+        userChatRoom.updateToNull();
     }
 }
