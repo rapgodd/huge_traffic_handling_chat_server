@@ -5,10 +5,11 @@ import lombok.Getter;
 import lombok.ToString;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "grpc.client.chat-server")
+@ConfigurationProperties(prefix = "grpc")
 @Getter
 @ToString
 @AllArgsConstructor
 public class GrpcProperty {
-    private String address;
+    private String ip;
+    private int port;
 }

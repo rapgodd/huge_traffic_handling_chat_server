@@ -5,6 +5,7 @@ import com.giyeon.chat_server.component.GrpcChatClient;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.Builder;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
@@ -12,9 +13,9 @@ import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 @Service
+@Slf4j
 public class ThreadSendingService {
 
     private final BlockingQueue<GrpcMessage> messageQueue1;
@@ -51,7 +52,6 @@ public class ThreadSendingService {
             while (true) {
                 try {
                     GrpcMessage message = messageQueue.take();
-
                     String ip = message.ip;
                     int port = message.port;
                     Long userId = message.userId;
@@ -69,7 +69,6 @@ public class ThreadSendingService {
     }
 
     public void addMessageToQueue(String json, String ip, int port, Long roomId, Long userId) {
-
         BlockingQueue<GrpcMessage> messageQueue = determineQueue(roomId);
 
         messageQueue.add(GrpcMessage.builder()

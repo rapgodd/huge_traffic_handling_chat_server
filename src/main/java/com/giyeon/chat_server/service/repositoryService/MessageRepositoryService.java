@@ -4,7 +4,6 @@ import com.giyeon.chat_server.annotation.Sharding;
 import com.giyeon.chat_server.component.IdGenerator;
 import com.giyeon.chat_server.dto.MessageJdbcDto;
 import com.giyeon.chat_server.dto.RoomMessagesDto;
-import com.giyeon.chat_server.entity.main.ChatRoom;
 import com.giyeon.chat_server.entity.message.Message;
 import com.giyeon.chat_server.repository.message.MessageJdbcRepository;
 import com.giyeon.chat_server.repository.message.MessageRepository;
@@ -27,12 +26,14 @@ public class MessageRepositoryService {
 
     @Sharding
     @Transactional(value = "messagePlatformTransactionManager")
-    public void insertMessage(Long roomId, String message) {
+    public void insertMessage(Long roomId, String message, Long senderId, LocalDateTime createdAt) {
 
         Message userMessage = Message.builder()
                 .id(idGenerator.nextId())
                 .message(message)
                 .roomId(roomId)
+                .senderId(senderId)
+                .createdAt(createdAt)
                 .build();
 
         messageRepository.save(userMessage);

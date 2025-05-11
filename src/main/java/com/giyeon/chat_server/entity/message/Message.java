@@ -24,9 +24,11 @@ public class Message {
     private LocalDateTime createdAt;
 
     @Builder
-    public Message(Long id,String message,Long roomId){
+    public Message(Long id,String message,Long roomId, Long senderId, LocalDateTime createdAt) {
         this.id = id;
         this.message = message;
         this.roomId = roomId;
+        this.senderId = senderId;
+        this.createdAt = createdAt;
     }
 }

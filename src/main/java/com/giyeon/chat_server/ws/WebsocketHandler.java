@@ -34,7 +34,7 @@ public class WebsocketHandler extends TextWebSocketHandler {
         //HashMap에 userId, roomId 저장
         //레디스에 userId, ip:port 저장
         String userId = (String)session.getAttributes().get("userId");
-        redisTemplate.opsForValue().set(userId,grpcProperty.getAddress());
+        redisTemplate.opsForValue().set(userId,grpcProperty.getIp()+":"+grpcProperty.getPort());
         sessionRegistry.setUserSession(Long.valueOf(userId), session);
     }
 

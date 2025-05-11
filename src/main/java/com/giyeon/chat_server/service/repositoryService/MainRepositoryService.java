@@ -48,4 +48,13 @@ public class MainRepositoryService {
         UserChatRoom userChatRoom = userChatRoomRepository.findUserInRoom(userId, roomId);
         userChatRoom.updateToNull();
     }
+
+    @Transactional(readOnly = false)
+    public List<Long> findJoinedUsersInCurrentRoom(List<Long> localSessionUserIdList, Long roomId) {
+        List<UserChatRoom> joinedUsersInCurrentRoom = userChatRoomRepository.findJoinedUsersInCurrentRoom(localSessionUserIdList, roomId);
+        return joinedUsersInCurrentRoom.stream().map(uc -> {
+            return uc.getUser().getId();
+        }).toList();
+
+    }
 }

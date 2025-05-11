@@ -28,4 +28,7 @@ public interface UserChatRoomRepository extends JpaRepository<UserChatRoom, Long
 
     @Query("SELECT uc FROM UserChatRoom uc JOIN FETCH uc.user u JOIN FETCH uc.chatRoom cr WHERE u.id =:userId AND cr.id =:roomId")
     UserChatRoom findUserInRoom(Long userId, Long roomId);
+
+    @Query("SELECT uc FROM UserChatRoom uc JOIN FETCH uc.user u JOIN FETCH uc.chatRoom r WHERE r.id= :roomId AND u.id IN :localSessionUserIdList AND uc.leavedAt IS null")
+    List<UserChatRoom> findJoinedUsersInCurrentRoom(List<Long> localSessionUserIdList, Long roomId);
 }
