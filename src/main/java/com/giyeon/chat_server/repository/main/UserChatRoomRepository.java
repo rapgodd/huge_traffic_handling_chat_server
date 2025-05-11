@@ -25,4 +25,7 @@ public interface UserChatRoomRepository extends JpaRepository<UserChatRoom, Long
     List<UserChatRoom> findByChatRoomOrderByIdAsc(ChatRoom room, Pageable pageable);
 
     Long countByChatRoom(ChatRoom room);
+
+    @Query("SELECT uc FROM UserChatRoom uc JOIN FETCH uc.user u JOIN FETCH uc.chatRoom cr WHERE u.id =:userId AND cr.id =:roomId")
+    UserChatRoom findUserInRoom(Long userId, Long roomId);
 }

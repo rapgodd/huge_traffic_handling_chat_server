@@ -6,6 +6,8 @@ import com.giyeon.chat_server.dto.RoomInfoDto;
 import com.giyeon.chat_server.entity.main.ChatRoom;
 import com.giyeon.chat_server.entity.main.User;
 import com.giyeon.chat_server.entity.main.UserChatRoom;
+import com.giyeon.chat_server.properties.DataSourceProperty;
+import com.giyeon.chat_server.properties.JwtProperty;
 import com.giyeon.chat_server.service.repositoryService.MainRepositoryService;
 import com.giyeon.chat_server.service.repositoryService.MessageRepositoryService;
 import com.giyeon.chat_server.util.JwtUtil;
@@ -29,15 +31,17 @@ public class RoomService {
 
     private final MainRepositoryService mainRepositoryService;
     private final MessageRepositoryService messageRepositoryService;
-    private final Environment environment;
+    private final JwtProperty jwtProperty;
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
     private final MsgKeySelector msgKeySelector;
+    @Autowired
+    private DataSourceProperty dataSourceProperty;
 
 
     public List<RoomInfoDto> getUserRooms(Pageable pageable) {
         // 유저 챗룸 가져오기
-        Long userId = JwtUtil.getUserId(environment.getProperty("jwt.secret"));
+        Long userId = JwtUtil.getUserId(jwtProperty.getSecret());
         User user = User.builder().id(userId).build();
 
         // roomInfoDtos를 채우기 위한 userChatRoom 리스트
@@ -145,8 +149,8 @@ public class RoomService {
         for (UserChatRoom userChatRoom : userChatRooms) {
             Long roomId = userChatRoom.getChatRoom().getId();
 
-            String shard1 = environment.getProperty("spring.datasource.shardList[0].key");
-            String shard2 = environment.getProperty("spring.datasource.shardList[1].key");
+            String shard1 = dataSourceProperty.getShardList().get(0).getKey();
+            String shard2 = dataSourceProperty.getShardList().get(1).getKey();
 
             if(msgKeySelector.getDbKey(roomId).equals(shard1)){
                 leavedAtByRoom1.put(roomId, userChatRoom.getLeavedAt());
@@ -203,5 +207,10 @@ public class RoomService {
                 roomInfoDto.setLastMessageTime(lastMessageTime);
             }
         }
+    }
+
+    public void leaveRoom(Long roomId) {
+        Long userId = JwtUtil.getUserId(jwtProperty.getSecret());
+        mainRepositoryService.updateLeavedAt(roomId,userId);
     }
 }

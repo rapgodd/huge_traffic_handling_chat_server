@@ -7,11 +7,11 @@ import com.giyeon.chat_server.entity.main.UserChatRoom;
 import com.giyeon.chat_server.repository.main.RoomRepository;
 import com.giyeon.chat_server.repository.main.UserChatRoomRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,17 +32,6 @@ public class MainRepositoryService {
         return userChatRoomRepository.findByUserOrderByChatRoom_LastMessageTimeDesc(user, pageable).getContent();
     }
 
-    @Transactional(readOnly = true)
-    public List<UserChatRoom> find5UserChatRoomsInRoom(ChatRoom room) {
-        PageRequest pageRequest = PageRequest.of(0, 5);
-        return userChatRoomRepository.findByChatRoomOrderByIdAsc(room, pageRequest);
-    }
-
-    @Transactional(readOnly = true)
-    public Long countAllUsersInRoom(ChatRoom room) {
-        return userChatRoomRepository.countByChatRoom(room);
-    }
-
     public void saveAllUserChatRoom(List<UserChatRoom> userChatRooms) {
         userChatRoomRepository.saveAll(userChatRooms);
     }
@@ -50,5 +39,11 @@ public class MainRepositoryService {
     @Transactional(readOnly = true)
     public List<ChatRoom> getRoomList(ArrayList<Long> roomIds) {
         return roomRepository.findAllUserChatRooms(roomIds);
+    }
+
+    @Transactional(readOnly = false)
+    public void updateLeavedAt(Long roomId, Long userId) {
+        UserChatRoom userInRoom = userChatRoomRepository.findUserInRoom(userId, roomId);
+        userInRoom.leaveRoom(LocalDateTime.now());
     }
 }
