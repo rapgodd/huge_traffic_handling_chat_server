@@ -22,14 +22,14 @@ public class MainRepositoryService {
     private final RoomRepository roomRepository;
     private final UserChatRoomRepository userChatRoomRepository;
 
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = false)
     public RoomUsersDto getRoom(Long roomId){
         return new RoomUsersDto(roomRepository.findUsersInRoom(roomId).getUserChatRooms());
     }
 
     @Transactional
     public List<UserChatRoom> getUserChatRooms(User user, Pageable pageable){
-        return userChatRoomRepository.findByUserOrderByChatRoom_LastMessageTimeDesc(user, pageable).getContent();
+        return userChatRoomRepository.findByUser(user, pageable).getContent();
     }
 
     @Transactional(readOnly = true)
@@ -62,5 +62,15 @@ public class MainRepositoryService {
     public ChatRoom findRoom(Long roomId) {
         ChatRoom usersInRoom = roomRepository.findUsersInRoom(roomId);
         return usersInRoom;
+    }
+
+    @Transactional(readOnly = false)
+    public void saveUserChatRooms(List<UserChatRoom> userChatRooms) {
+        userChatRoomRepository.saveAll(userChatRooms);
+    }
+
+    @Transactional(readOnly = false)
+    public void saveRoom(ChatRoom chatRoom) {
+        roomRepository.save(chatRoom);
     }
 }

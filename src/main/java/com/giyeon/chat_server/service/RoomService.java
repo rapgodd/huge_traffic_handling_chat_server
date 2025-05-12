@@ -1,7 +1,9 @@
 package com.giyeon.chat_server.service;
 
+import com.giyeon.chat_server.component.IdGenerator;
 import com.giyeon.chat_server.component.MsgKeySelector;
 import com.giyeon.chat_server.dto.MessageJdbcDto;
+import com.giyeon.chat_server.dto.RoomCreateDto;
 import com.giyeon.chat_server.dto.RoomDetailsDto;
 import com.giyeon.chat_server.dto.RoomInfoDto;
 import com.giyeon.chat_server.entity.main.ChatRoom;
@@ -13,6 +15,8 @@ import com.giyeon.chat_server.service.repositoryService.MainRepositoryService;
 import com.giyeon.chat_server.service.repositoryService.MessageRepositoryService;
 import com.giyeon.chat_server.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -29,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class RoomService {
 
+    private static final Logger log = LoggerFactory.getLogger(RoomService.class);
     private final MainRepositoryService mainRepositoryService;
     private final MessageRepositoryService messageRepositoryService;
     private final JwtProperty jwtProperty;
@@ -37,7 +42,7 @@ public class RoomService {
     private final MsgKeySelector msgKeySelector;
     @Autowired
     private DataSourceProperty dataSourceProperty;
-
+    private final IdGenerator idGenerator;
 
     public List<RoomInfoDto> getUserRooms(Pageable pageable) {
         // 유저 챗룸 가져오기
@@ -61,8 +66,7 @@ public class RoomService {
             // 해쉬맵에 [key : 방 id , value : 방 정보]저장
             roomInfoDtos.put(userChatRoom.getChatRoom().getId(), RoomInfoDto.builder()
                     .roomId(userChatRoom.getChatRoom().getId())
-                    .leavedAt(userChatRoom.getLeavedAt()!=null ? userChatRoom.getLeavedAt() : userChatRoom.getChatRoom().getCreatedAt())
-                    .lastMessageTime(userChatRoom.getChatRoom().getLastMessageTime())
+                    .leavedAt(userChatRoom.getLeavedAt()!=null ? userChatRoom.getLeavedAt() : null)
                     .roomName(roomName)
                     .roomImageUrl(imageUrl==null ? Collections.emptyList() : List.of(imageUrl.split(", ")))
                     .build());
@@ -165,8 +169,17 @@ public class RoomService {
         //roomInfoDtos의 값을 List<RoomInfoDto>로 변환해 리턴
         List<RoomInfoDto> roomInfoList = new ArrayList<>(roomInfoDtos.values());
         //roomInfoList를 최신순으로 정렬
-        roomInfoList.sort((o1, o2) -> o2.getLastMessageTime().compareTo(o1.getLastMessageTime()));
-        //roomInfoList를 리턴
+        roomInfoList.sort((o1, o2) -> {
+            LocalDateTime t1 = o1.getLastMessageTime() != null
+                    ? o1.getLastMessageTime()
+                    : LocalDateTime.MIN;
+            LocalDateTime t2 = o2.getLastMessageTime() != null
+                    ? o2.getLastMessageTime()
+                    : LocalDateTime.MIN;
+            // 최신순
+            return t2.compareTo(t1);
+        });
+
         return roomInfoList;
     }
 
@@ -285,4 +298,5 @@ public class RoomService {
         }
 
     }
+
 }

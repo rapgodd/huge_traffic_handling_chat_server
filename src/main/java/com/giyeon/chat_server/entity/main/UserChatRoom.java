@@ -35,4 +35,12 @@ public class UserChatRoom {
     public void updateToNull(){
         this.leavedAt = null;
     }
+
+    @Builder
+    public UserChatRoom(Long id, User user, ChatRoom chatRoom, LocalDateTime leavedAt) {
+        this.id = id;
+        this.user = user;
+        this.chatRoom = chatRoom;
+        this.leavedAt = leavedAt;
+    }
 }

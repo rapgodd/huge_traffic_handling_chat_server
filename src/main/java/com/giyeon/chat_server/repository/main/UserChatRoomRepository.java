@@ -13,9 +13,9 @@ import java.util.List;
 
 public interface UserChatRoomRepository extends JpaRepository<UserChatRoom, Long> {
 
-    // ChatRoom엔티티의 last_message_time 필드로 50개 최신 방을 가져오는 쿼리
+
     @EntityGraph(attributePaths = "chatRoom")
-    Page<UserChatRoom> findByUserOrderByChatRoom_LastMessageTimeDesc(
+    Page<UserChatRoom> findByUser(
             User user,
             Pageable pageable
     );

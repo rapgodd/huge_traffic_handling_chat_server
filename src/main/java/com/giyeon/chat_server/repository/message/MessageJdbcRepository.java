@@ -1,6 +1,5 @@
 package com.giyeon.chat_server.repository.message;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.giyeon.chat_server.dto.MessageJdbcDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -20,40 +19,50 @@ public class MessageJdbcRepository {
     private final JdbcTemplate jdbcTemplate;
 
     public List<MessageJdbcDto> fetchAggregates(Map<Long, LocalDateTime> leavedAtByRoom) {
+        if (leavedAtByRoom.isEmpty()) {
+            return List.of();
+        }
         // SQL 문자열 동적 생성
-        StringBuilder sql = new StringBuilder(
-                "SELECT\n" +
-                        "  m.room_id             AS roomId,\n" +
-                        "  COUNT(*)              AS unreadCount,\n" +
-                        "  SUBSTRING_INDEX(\n" +
-                        "    GROUP_CONCAT(m.message ORDER BY m.created_at DESC),\n" +
-                        "    ',', 1\n" +
-                        "  )                      AS lastMessage,\n" +
-                        "  MAX(m.created_at)     AS lastMessageTime\n" +
-                        "FROM message m\n" +
-                        "WHERE "
-        );
+        StringBuilder sql = new StringBuilder()
+                .append("SELECT\n")
+                .append("  m.room_id                AS roomId,\n")
+                .append("  SUM(CASE WHEN m.created_at > l.leaveAt THEN 1 ELSE 0 END) AS unreadCount,\n")
+                .append("  SUBSTRING_INDEX(\n")
+                .append("    GROUP_CONCAT(m.message ORDER BY m.created_at DESC), ',', 1\n")
+                .append("  )                         AS lastMessage,\n")
+                .append("  MAX(m.created_at)        AS lastMessageTime\n")
+                .append("FROM message m\n")
+                .append("JOIN (\n");
+
+        int cnt = 0;
+        for (Map.Entry<Long, LocalDateTime> entry : leavedAtByRoom.entrySet()) {
+            if (cnt++ > 0) {
+                sql.append("  UNION ALL\n");
+            }
+            sql.append("  SELECT ? AS room_id, ? AS leaveAt\n");
+        }
+        sql.append(") AS l ON m.room_id = l.room_id\n")
+                .append("GROUP BY m.room_id\n")
+                .append("ORDER BY m.room_id ASC");
+
 
         List<Object> params = new ArrayList<>();
-        int idx = 0;
         for (Map.Entry<Long, LocalDateTime> entry : leavedAtByRoom.entrySet()) {
-            if (idx++ > 0) {
-                sql.append(" OR ");
-            }
-            sql.append("(m.room_id = ? AND m.created_at > ?)");
             params.add(entry.getKey());
-            params.add(Timestamp.valueOf(entry.getValue()));
+            params.add(entry.getValue());  // null 허용. CASE WHEN 절에서 false 처리 → unreadCount=0
         }
-        sql.append("\nGROUP BY m.room_id\n");
-        sql.append("ORDER BY m.room_id ASC");
 
 
-         RowMapper<MessageJdbcDto> rowMapper = (rs, rowNum) -> new MessageJdbcDto(
-            rs.getLong("roomId"),
-            rs.getInt("unreadCount"),
-            rs.getString("lastMessage"),
-            rs.getTimestamp("lastMessageTime").toLocalDateTime()
-         );
+        RowMapper<MessageJdbcDto> rowMapper = (rs, rowNum) -> {
+            Timestamp ts = rs.getTimestamp("lastMessageTime");
+            LocalDateTime lastTime = ts == null ? null : ts.toLocalDateTime();
+            return new MessageJdbcDto(
+                    rs.getLong("roomId"),
+                    rs.getInt("unreadCount"),
+                    rs.getString("lastMessage"),
+                    lastTime
+            );
+        };
 
         return jdbcTemplate.query(sql.toString(), params.toArray(), rowMapper);
     }
