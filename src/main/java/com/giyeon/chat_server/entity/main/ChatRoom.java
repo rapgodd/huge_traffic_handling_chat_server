@@ -23,16 +23,20 @@ public class ChatRoom {
     private String roomName;
     private String roomImageUrl;
     private LocalDateTime lastMessageTime;
+    private String notification;
 
     @OneToMany(mappedBy = "chatRoom")
     private List<UserChatRoom> userChatRooms;
 
     @Builder
-    public ChatRoom(Long id, LocalDateTime createdAt, String roomName, String roomImageUrl) {
+    public ChatRoom(Long id, LocalDateTime createdAt, String roomName, String roomImageUrl,
+                    LocalDateTime lastMessageTime, String notification) {
         this.id = id;
         this.createdAt = createdAt;
         this.roomName = roomName;
         this.roomImageUrl = roomImageUrl;
+        this.lastMessageTime = lastMessageTime;
+        this.notification = notification;
     }
 
     public void updateRoomNameAndImageUrl(String roomName, String roomImagesUrl) {

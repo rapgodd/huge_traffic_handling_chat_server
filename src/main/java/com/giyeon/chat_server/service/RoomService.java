@@ -2,6 +2,7 @@ package com.giyeon.chat_server.service;
 
 import com.giyeon.chat_server.component.MsgKeySelector;
 import com.giyeon.chat_server.dto.MessageJdbcDto;
+import com.giyeon.chat_server.dto.RoomDetailsDto;
 import com.giyeon.chat_server.dto.RoomInfoDto;
 import com.giyeon.chat_server.entity.main.ChatRoom;
 import com.giyeon.chat_server.entity.main.User;
@@ -78,27 +79,8 @@ public class RoomService {
 
             // 방 이름 없으면 --> 구해서 집어 넣자
             if (redisTemplate.opsForValue().get("chatRoomId:" + room.getId() + ":roomName")==null) {
-                List<UserChatRoom> usersInRoom = room.getUserChatRooms();
-                StringBuilder sb = new StringBuilder();
 
-                int flag = 0;
-                for (int i = 0; i < usersInRoom.size(); i++) {
-                    if (flag<4){
-                        UserChatRoom userChatRoom = usersInRoom.get(i);
-                        sb.append(userChatRoom.getUser().getName());
-                        flag++;
-                    }
-
-                    if(flag==4||i==usersInRoom.size()-1){
-                        break;
-                    }else{
-                        sb.append(", ");
-                    }
-
-                }
-
-                String roomName = sb.toString();
-                redisTemplate.opsForValue().set("chatRoomId:" + room.getId() + ":roomName", roomName, 30, TimeUnit.MINUTES);
+                String roomName = getRoomName(room);
                 roomInfoDtos.get(room.getId()).setRoomName(roomName);
 
             }
@@ -110,8 +92,8 @@ public class RoomService {
                     //상대 유저 이미지 url 가져오기
                     room.getUserChatRooms().forEach(userChatRoom -> {
                         if (userChatRoom.getUser().getId() != userId) {
-                            redisTemplate.opsForValue().set("chatRoomId:" + room.getId() + ":roomImageUrl", userChatRoom.getUser().getUserImageUrl(), 30, TimeUnit.MINUTES);
-                            roomInfoDtos.get(room.getId()).setRoomImageUrl(List.of(userChatRoom.getUser().getUserImageUrl()));
+                            String userImageUrl = userChatRoom.getUser().getUserImageUrl();
+                            roomInfoDtos.get(room.getId()).setRoomImageUrl(List.of(userImageUrl));
                         }
                     });
 
@@ -136,6 +118,8 @@ public class RoomService {
                         }
                     }
                 }
+
+
             }
         }
 
@@ -186,6 +170,29 @@ public class RoomService {
         return roomInfoList;
     }
 
+    private String getRoomName(ChatRoom room) {
+        List<UserChatRoom> usersInRoom = room.getUserChatRooms();
+        StringBuilder sb = new StringBuilder();
+
+        int flag = 0;
+        for (int i = 0; i < usersInRoom.size(); i++) {
+            if (flag<4){
+                UserChatRoom userChatRoom = usersInRoom.get(i);
+                sb.append(userChatRoom.getUser().getName());
+                flag++;
+            }
+
+            if(flag==4||i==usersInRoom.size()-1){
+                break;
+            }else{
+                sb.append(", ");
+            }
+
+        }
+        String roomName = sb.toString();
+        return roomName;
+    }
+
     //messageJdbcDtos1,2,3의
     // private Long roomId;
     // private Integer unreadCount;
@@ -216,5 +223,66 @@ public class RoomService {
     public void joinRoom(Long roomId) {
         Long userId = JwtUtil.getUserId(jwtProperty.getSecret());
         mainRepositoryService.updateLeavedAtToNull(roomId, userId);
+    }
+
+    public RoomDetailsDto getRoomDetails(Long roomId) {
+        ChatRoom room = mainRepositoryService.findRoom(roomId);
+        String roomName = room.getRoomName();
+        String roomImageUrl = room.getRoomImageUrl();
+        String finalRoomName = (roomName ==null)? getRoomName(room) : roomName;
+        String roomImage = roomImageUrl==null?getRoomImage(room): roomImageUrl;
+        int usersInRoom = room.getUserChatRooms().size();
+        String notification = room.getNotification();
+        Long id = room.getId();
+
+        return RoomDetailsDto.builder()
+                .roomName(finalRoomName)
+                .roomImageUrl(roomImage.contains(", ")? List.of(roomImage.split(", ")) : List.of(roomImage))
+                .joinedUserCount(usersInRoom)
+                .notification(notification)
+                .roomId(id)
+                .build();
+
+    }
+
+    public String getRoomImage(ChatRoom room) {
+
+        String imageUrl = redisTemplate.opsForValue().get("chatRoomId:" + room.getId() + ":roomImageUrl");
+        if(imageUrl ==null){
+
+            int usersInRoom = room.getUserChatRooms().size();
+            Long userId = JwtUtil.getUserId(jwtProperty.getSecret());
+            StringBuilder sb = new StringBuilder();
+
+            if (usersInRoom==2){
+                //상대 유저 이미지 url 가져오기
+                room.getUserChatRooms().forEach(userChatRoom -> {
+                    if (userChatRoom.getUser().getId() != userId) {
+                        sb.append(userChatRoom.getUser().getUserImageUrl());
+                    }
+                });
+
+            }
+            // 유저가 3명 이상이라면
+            // 리스트 앞 순위 2명의 이미지 url 가져오기
+            else if (usersInRoom>2){
+                int flag = 0;
+                for (int i = 0; i < usersInRoom; i++) {
+                    if (flag<1){
+                        String userImageUrl = room.getUserChatRooms().get(i).getUser().getUserImageUrl();
+                        sb.append(userImageUrl).append(", ");
+                        flag++;
+                    }else {
+                        String userImageUrl = room.getUserChatRooms().get(i).getUser().getUserImageUrl();
+                        sb.append(userImageUrl);
+                        break;
+                    }
+                }
+            }
+            return sb.toString();
+        }else{
+            return imageUrl;
+        }
+
     }
 }

@@ -57,4 +57,10 @@ public class MainRepositoryService {
         }).toList();
 
     }
+
+    @Transactional(readOnly = true)
+    public ChatRoom findRoom(Long roomId) {
+        ChatRoom usersInRoom = roomRepository.findUsersInRoom(roomId);
+        return usersInRoom;
+    }
 }

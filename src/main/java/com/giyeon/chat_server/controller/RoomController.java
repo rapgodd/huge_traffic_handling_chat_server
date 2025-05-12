@@ -1,8 +1,10 @@
 package com.giyeon.chat_server.controller;
 
 import com.giyeon.chat_server.dto.ApiResponseDto;
+import com.giyeon.chat_server.dto.RoomDetailsDto;
 import com.giyeon.chat_server.service.RoomService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -32,5 +34,12 @@ public class RoomController {
                 .build();
     }
 
-
+    @GetMapping("/api/room/{roomId}")
+    public ApiResponseDto<?> getRoomDetails(@PathVariable Long roomId) {
+        RoomDetailsDto roomDetailsDto = roomService.getRoomDetails(roomId);
+        return ApiResponseDto.builder()
+                .code(200)
+                .data(roomDetailsDto)
+                .build();
+    }
 }
