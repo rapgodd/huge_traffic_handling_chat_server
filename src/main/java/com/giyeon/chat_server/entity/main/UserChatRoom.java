@@ -1,10 +1,7 @@
 package com.giyeon.chat_server.entity.main;
 
 import jakarta.persistence.*;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -16,6 +13,7 @@ import java.time.LocalDateTime;
 public class UserChatRoom {
 
     @Id
+    @Setter
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -43,4 +41,5 @@ public class UserChatRoom {
         this.chatRoom = chatRoom;
         this.leavedAt = leavedAt;
     }
+
 }

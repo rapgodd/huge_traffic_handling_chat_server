@@ -16,7 +16,7 @@ public class RoomController {
 
     private final RoomService roomService;
 
-    @PostMapping("/api/room/{roomId}/exit")
+    @PostMapping("/api/rooms/{roomId}/exit")
     public ApiResponseDto<?> leaveRoom(@PathVariable Long roomId) {
         roomService.leaveRoom(roomId);
         return ApiResponseDto.builder()
@@ -25,7 +25,7 @@ public class RoomController {
                 .build();
     }
 
-    @PostMapping("/api/room/{roomId}/join")
+    @PostMapping("/api/rooms/{roomId}/join")
     public ApiResponseDto<?> joinRoom(@PathVariable Long roomId) {
         roomService.joinRoom(roomId);
         return ApiResponseDto.builder()
@@ -34,7 +34,7 @@ public class RoomController {
                 .build();
     }
 
-    @GetMapping("/api/room/{roomId}")
+    @GetMapping("/api/rooms/{roomId}")
     public ApiResponseDto<?> getRoomDetails(@PathVariable Long roomId) {
         RoomDetailsDto roomDetailsDto = roomService.getRoomDetails(roomId);
         return ApiResponseDto.builder()

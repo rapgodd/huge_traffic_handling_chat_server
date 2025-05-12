@@ -1,5 +1,6 @@
 package com.giyeon.chat_server.service.repositoryService;
 
+import com.giyeon.chat_server.component.IdGenerator;
 import com.giyeon.chat_server.dto.RoomUsersDto;
 import com.giyeon.chat_server.entity.main.ChatRoom;
 import com.giyeon.chat_server.entity.main.User;
@@ -21,6 +22,7 @@ public class MainRepositoryService {
     
     private final RoomRepository roomRepository;
     private final UserChatRoomRepository userChatRoomRepository;
+    private final IdGenerator idGenerator;
 
     @Transactional(readOnly = false)
     public RoomUsersDto getRoom(Long roomId){
@@ -65,7 +67,8 @@ public class MainRepositoryService {
     }
 
     @Transactional(readOnly = false)
-    public void saveUserChatRooms(List<UserChatRoom> userChatRooms) {
+    public void saveUserChatRooms(ChatRoom chatRoom, List<UserChatRoom> userChatRooms) {
+        roomRepository.save(chatRoom);
         userChatRoomRepository.saveAll(userChatRooms);
     }
 

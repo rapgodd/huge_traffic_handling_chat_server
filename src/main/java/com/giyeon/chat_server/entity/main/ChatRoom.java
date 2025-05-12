@@ -2,10 +2,7 @@ package com.giyeon.chat_server.entity.main;
 
 
 import jakarta.persistence.*;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,6 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 public class ChatRoom {
 
+    @Setter
     @Id
     private Long id;
 
@@ -40,4 +38,5 @@ public class ChatRoom {
         this.roomName = roomName;
         this.roomImageUrl = roomImagesUrl;
     }
+
 }

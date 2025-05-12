@@ -299,4 +299,31 @@ public class RoomService {
 
     }
 
+    public void createRoom(RoomCreateDto roomCreateDto) {
+
+        Long userId = JwtUtil.getUserId(jwtProperty.getSecret());
+        List<Long> userIds = roomCreateDto.getOtherUserIds();
+        userIds.add(userId);
+
+        ChatRoom chatRoom = ChatRoom.builder()
+                .id(idGenerator.nextId())
+                .roomName(roomCreateDto.getRoomName())
+                .roomImageUrl(roomCreateDto.getRoomImageUrl())
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        List<UserChatRoom> userChatRooms = new ArrayList<>();
+
+        for (Long id : userIds) {
+            UserChatRoom userChatRoom = UserChatRoom.builder()
+                    .id(idGenerator.nextId())
+                    .user(User.builder().id(id).build())
+                    .chatRoom(chatRoom)
+                    .leavedAt(LocalDateTime.now())
+                    .build();
+            userChatRooms.add(userChatRoom);
+        }
+
+        mainRepositoryService.saveUserChatRooms(chatRoom,userChatRooms);
+    }
 }

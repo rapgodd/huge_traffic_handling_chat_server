@@ -80,6 +80,7 @@ public class MessageRepositoryService {
     @Transactional(value = "jdbcTransactionManager")
     public List<MessageJdbcDto> getAggregates(Long roomId, HashMap<Long,LocalDateTime> shardMap) {
         List<MessageJdbcDto> messageJdbcDtos = messageJdbcRepository.fetchAggregates(shardMap);
+
         return messageJdbcDtos;
     }
 
