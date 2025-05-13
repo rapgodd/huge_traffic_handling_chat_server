@@ -73,7 +73,9 @@ public class MainRepositoryService {
     }
 
     @Transactional(readOnly = false)
-    public void saveRoom(ChatRoom chatRoom) {
-        roomRepository.save(chatRoom);
+    public List<UserChatRoom> findUserChatRoomList(Long roomId) {
+        return userChatRoomRepository.findAllUserChatRoomInSingleRoom(roomId);
     }
+
+
 }

@@ -13,7 +13,6 @@ import java.time.LocalDateTime;
 public class UserChatRoom {
 
     @Id
-    @Setter
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -41,5 +40,4 @@ public class UserChatRoom {
         this.chatRoom = chatRoom;
         this.leavedAt = leavedAt;
     }
-
 }

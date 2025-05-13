@@ -14,15 +14,6 @@ public class MessageController {
     private final MessageRepositoryService messageRepositoryService;
     private final MessageService messageService;
 
-
-    @GetMapping("/api/messages")
-    public ApiResponseDto<?> getMessages(@RequestParam(name = "room") Long roomId){
-        return ApiResponseDto.builder()
-                .code(200)
-                .data(messageRepositoryService.getMessages(roomId))
-                .build();
-    }
-
     @PostMapping("/api/messages")
     public ApiResponseDto<?> sendMessage(@RequestBody ChatDto chatDto) {
         messageService.sendMessage(chatDto);

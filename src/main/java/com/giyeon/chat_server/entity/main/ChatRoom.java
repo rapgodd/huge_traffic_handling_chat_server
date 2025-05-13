@@ -13,7 +13,6 @@ import java.util.List;
 @NoArgsConstructor
 public class ChatRoom {
 
-    @Setter
     @Id
     private Long id;
 
@@ -38,5 +37,4 @@ public class ChatRoom {
         this.roomName = roomName;
         this.roomImageUrl = roomImagesUrl;
     }
-
 }

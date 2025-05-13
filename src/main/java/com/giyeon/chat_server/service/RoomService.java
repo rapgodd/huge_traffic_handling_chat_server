@@ -2,15 +2,14 @@ package com.giyeon.chat_server.service;
 
 import com.giyeon.chat_server.component.IdGenerator;
 import com.giyeon.chat_server.component.MsgKeySelector;
-import com.giyeon.chat_server.dto.MessageJdbcDto;
-import com.giyeon.chat_server.dto.RoomCreateDto;
-import com.giyeon.chat_server.dto.RoomDetailsDto;
-import com.giyeon.chat_server.dto.RoomInfoDto;
+import com.giyeon.chat_server.dto.*;
 import com.giyeon.chat_server.entity.main.ChatRoom;
 import com.giyeon.chat_server.entity.main.User;
 import com.giyeon.chat_server.entity.main.UserChatRoom;
+import com.giyeon.chat_server.entity.message.Message;
 import com.giyeon.chat_server.properties.DataSourceProperty;
 import com.giyeon.chat_server.properties.JwtProperty;
+import com.giyeon.chat_server.repository.message.MessageRepository;
 import com.giyeon.chat_server.service.repositoryService.MainRepositoryService;
 import com.giyeon.chat_server.service.repositoryService.MessageRepositoryService;
 import com.giyeon.chat_server.util.JwtUtil;
@@ -43,6 +42,8 @@ public class RoomService {
     @Autowired
     private DataSourceProperty dataSourceProperty;
     private final IdGenerator idGenerator;
+    @Autowired
+    private MessageRepository messageRepository;
 
     public List<RoomInfoDto> getUserRooms(Pageable pageable) {
         // 유저 챗룸 가져오기
@@ -325,5 +326,46 @@ public class RoomService {
         }
 
         mainRepositoryService.saveUserChatRooms(chatRoom,userChatRooms);
+    }
+
+    public List<RoomMessageListDto> getRoomMessages(Long roomId, Pageable pageable) {
+
+        // 방 --> 메세지 리스트
+        List<Message> messages = messageRepositoryService.getMessages(roomId, pageable);
+
+        // jwt --> userId
+        Long userId = JwtUtil.getUserId(jwtProperty.getSecret());
+
+        // 방 --> 유저 챗룸 (Join user)
+        List<UserChatRoom> userChatRoomList = mainRepositoryService.findUserChatRoomList(roomId);
+
+
+        //가져온 메세지 리스트를 dto로 변환
+        List<RoomMessageListDto> returnList = messages.stream().map(message -> {
+            RoomMessageListDto dto = RoomMessageListDto.builder()
+                    .message(message.getMessage())
+                    .createdAt(message.getCreatedAt())
+                    .isMe(message.getSenderId().equals(userId))
+                    .build();
+
+
+            for (UserChatRoom userChatRoom : userChatRoomList) {
+
+                LocalDateTime userExitTime = (userChatRoom.getLeavedAt() == null) ? LocalDateTime.MAX : userChatRoom.getLeavedAt();
+
+                // 메세지 보낸 시간과 유저가 나간 시간 비교
+                if (message.getCreatedAt().isAfter(userExitTime)) {
+                    dto.setUnreadCount(dto.getUnreadCount() + 1);
+                }
+                // 메세지 보낸 유저와 방에 있는 유저 비교
+                if (message.getSenderId().equals(userChatRoom.getUser().getId())) {
+                    dto.setSenderImageUrl(userChatRoom.getUser().getUserImageUrl());
+                    dto.setSenderName(userChatRoom.getUser().getName());
+                }
+            }
+            return dto;
+        }).toList();
+
+        return returnList;
     }
 }

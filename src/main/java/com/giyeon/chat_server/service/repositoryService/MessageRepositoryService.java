@@ -8,6 +8,7 @@ import com.giyeon.chat_server.entity.message.Message;
 import com.giyeon.chat_server.repository.message.MessageJdbcRepository;
 import com.giyeon.chat_server.repository.message.MessageRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,17 +43,10 @@ public class MessageRepositoryService {
 
     @Sharding
     @Transactional(value = "messagePlatformTransactionManager")
-    public List<RoomMessagesDto> getMessages(Long roomId) {
-        List<RoomMessagesDto> messageDtoList = new ArrayList<>();
+    public List<Message> getMessages(Long roomId, Pageable pageable) {
 
-        messageRepository.findByRoomId(roomId).forEach(msg->{
-            messageDtoList.add(RoomMessagesDto.builder()
-                    .message(msg.getMessage())
-                    .sender("giyeon")
-                    .build());
-        });
+        return messageRepository.findByRoomIdOrderByCreatedAtDesc(roomId, pageable);
 
-        return messageDtoList;
     }
 
     @Sharding
