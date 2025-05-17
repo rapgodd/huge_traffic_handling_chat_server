@@ -44,8 +44,8 @@ public class RoomService {
     @Autowired
     private DataSourceProperty dataSourceProperty;
     private final IdGenerator idGenerator;
-    @Autowired
-    private MessageRepository messageRepository;
+    private final String shard1Key = dataSourceProperty.getShardList().get(0).getKey();
+    private final String shard2Key = dataSourceProperty.getShardList().get(0).getKey();
 
     public List<RoomInfoDto> getUserRooms(Pageable pageable) {
         // 유저 챗룸 가져오기
@@ -59,6 +59,183 @@ public class RoomService {
         HashMap<Long,RoomInfoDto> roomInfoDtos = new HashMap<>(50);
         ArrayList<Long> roomIds = new ArrayList<>();
 
+        fillReturnDtoPart(userChatRooms, roomIds, roomInfoDtos);
+
+        // 방안에 있는 유저수를 구하기 위한 in절 쿼리 연결되어 있는 유저챗룸 , 유저 한번에 join
+        List<ChatRoom> roomList = mainRepositoryService.getRoomList(roomIds);
+
+        // 방 안에 있는 유저 수 구하기
+        for (ChatRoom room : roomList) {
+            fillUserCountInRoom(room, roomInfoDtos);
+
+            // 방 이름 없으면 --> 구해서 집어 넣자
+            if (redisTemplate.opsForValue().get("chatRoomId:" + room.getId() + ":roomName")==null) {
+
+                String roomName = getRoomName(room);
+                roomInfoDtos.get(room.getId()).setRoomName(roomName);
+
+            }
+            // 방 이미지 없으면 --> 구해서 집어 넣자
+            if(redisTemplate.opsForValue().get("chatRoomId:" + room.getId() + ":roomImageUrl")==null){
+                //유저가 두명이라면
+                int usersInRoom = room.getUserChatRooms().size();
+                if (usersInRoom==2){
+                    //상대 유저 이미지 url 가져오기
+                    fillOpponentImage(room, userId, roomInfoDtos);
+
+                }
+                // 유저가 3명 이상이라면
+                // 리스트 앞 순위 2명의 이미지 url 가져오기
+                else if (usersInRoom>2){
+                    StringBuilder sb = new StringBuilder();
+                    int flag = 0;
+                    for (int i = 0; i < usersInRoom; i++) {
+                        
+                        if (flag<1){
+                            appendUrlInSb(room, i, sb);
+                            flag++;
+                        }else {
+                            appendUrlInSb(room, i, sb);
+                            setRoomImages(room, sb, roomInfoDtos);
+                            break;
+                        }
+                        
+                    }
+                }
+
+
+            }
+        }
+
+        // 안 읽은 메세지 수, 마지막 메세지 내용을 구하기 위함
+        // HashMap을 루프돌면서 방 id와 떠난 시간을 구해서 새로운 Mao<Long,LocalDateTime>에 넣어준다
+        HashMap<Long, ZonedDateTime> roomAndClosedAt1 = new HashMap<>();
+        HashMap<Long, ZonedDateTime> roomAndClosedAt2 = new HashMap<>();
+        HashMap<Long, ZonedDateTime> roomAndClosedAt3 = new HashMap<>();
+
+        for (UserChatRoom userChatRoom : userChatRooms) {
+
+            fillRoomAndClosedAt(userChatRoom,
+                    roomAndClosedAt1,
+                    roomAndClosedAt2,
+                    roomAndClosedAt3);
+
+        }
+
+        fillJdbcInReturnDto(roomAndClosedAt1, roomAndClosedAt2, roomAndClosedAt3, roomInfoDtos);
+
+
+        List<RoomInfoDto> roomInfoList = new ArrayList<>(roomInfoDtos.values());
+        sortLastMsgDesc(roomInfoList);
+
+        return roomInfoList;
+    }
+
+    private void sortLastMsgDesc(List<RoomInfoDto> roomInfoList) {
+        roomInfoList.sort((o1, o2) -> {
+            ZonedDateTime t1 = o1.getLastMessageTime() != null
+                    ? o1.getLastMessageTime()
+                    : LocalDateTime.MIN.atZone(ZoneOffset.UTC);
+            ZonedDateTime t2 = o2.getLastMessageTime() != null
+                    ? o2.getLastMessageTime()
+                    : LocalDateTime.MIN.atZone(ZoneOffset.UTC);
+            // 최신순
+            return t2.compareTo(t1);
+        });
+    }
+
+    private void fillJdbcInReturnDto(HashMap<Long, ZonedDateTime> roomAndClosedAt1, HashMap<Long, ZonedDateTime> roomAndClosedAt2, HashMap<Long, ZonedDateTime> roomAndClosedAt3, HashMap<Long, RoomInfoDto> roomInfoDtos) {
+        List<MessageJdbcDto> messageJdbcDtos1 = getMessageJdbcDtos(roomAndClosedAt1);
+        List<MessageJdbcDto> messageJdbcDtos2 = getMessageJdbcDtos(roomAndClosedAt2);
+        List<MessageJdbcDto> messageJdbcDtos3 = getMessageJdbcDtos(roomAndClosedAt3);
+
+        fillRoomInfoDtos(messageJdbcDtos1, roomInfoDtos);
+        fillRoomInfoDtos(messageJdbcDtos2, roomInfoDtos);
+        fillRoomInfoDtos(messageJdbcDtos3, roomInfoDtos);
+    }
+
+
+    private List<MessageJdbcDto> getMessageJdbcDtos(HashMap<Long, ZonedDateTime> roomAndClosedAt1) {
+        Long lea1 = getRandomId(roomAndClosedAt1);
+        return messageRepositoryService.getAggregates(lea1, roomAndClosedAt1);
+    }
+
+    
+    
+    private Long getRandomId(HashMap<Long, ZonedDateTime> roomAndClosedAt1) {
+        return roomAndClosedAt1.keySet().iterator().next();
+    }
+
+    
+    
+    private void fillRoomAndClosedAt(UserChatRoom userChatRoom,
+                                     HashMap<Long, ZonedDateTime> roomAndClosedAt1, 
+                                     HashMap<Long, ZonedDateTime> roomAndClosedAt2,
+                                     HashMap<Long, ZonedDateTime> roomAndClosedAt3) {
+
+        Long roomId = userChatRoom.getChatRoom().getId();
+
+        if(msgKeySelector.getDbKey(roomId).equals(shard1Key)){
+            roomAndClosedAt1.put(roomId, userChatRoom.getLeavedAt());
+        }
+        else if(msgKeySelector.getDbKey(roomId).equals(shard2Key)){
+            roomAndClosedAt2.put(roomId, userChatRoom.getLeavedAt());
+        }
+        else{
+            roomAndClosedAt3.put(roomId, userChatRoom.getLeavedAt());
+        }
+    }
+
+    
+    
+    private void setRoomImages(ChatRoom room, StringBuilder sb, HashMap<Long, RoomInfoDto> roomInfoDtos) {
+        String image = sb.toString();
+        redisTemplate.opsForValue().set("chatRoomId:" + room.getId() + ":roomImageUrl", image, 30, TimeUnit.MINUTES);
+        roomInfoDtos.get(room.getId()).setRoomImageUrl(List.of(image.split(", ")));
+    }
+
+    
+    
+    private void appendUrlInSb(ChatRoom room, int i, StringBuilder sb) {
+        
+        if(i<1){
+            String userImageUrl = getImageUrl(room.getUserChatRooms().get(i));
+            sb.append(userImageUrl).append(", ");
+        }else{
+            String userImageUrl = getImageUrl(room.getUserChatRooms().get(i));
+            sb.append(userImageUrl);
+        }
+        
+    }
+
+    
+    
+    private String getImageUrl(UserChatRoom room) {
+        String userImageUrl = room.getUser().getUserImageUrl();
+        return userImageUrl;
+    }
+
+    
+    
+    private void fillOpponentImage(ChatRoom room, Long userId, HashMap<Long, RoomInfoDto> roomInfoDtos) {
+        room.getUserChatRooms().forEach(userChatRoom -> {
+            if (userChatRoom.getUser().getId() != userId) {
+                String userImageUrl = getImageUrl(userChatRoom);
+                roomInfoDtos.get(room.getId()).setRoomImageUrl(List.of(userImageUrl));
+            }
+        });
+    }
+
+    
+    
+    private void fillUserCountInRoom(ChatRoom room, HashMap<Long, RoomInfoDto> roomInfoDtos) {
+        int userCount = room.getUserChatRooms().size();
+        roomInfoDtos.get(room.getId()).setJoinedUserCount(userCount);
+    }
+
+    
+    
+    private void fillReturnDtoPart(List<UserChatRoom> userChatRooms, ArrayList<Long> roomIds, HashMap<Long, RoomInfoDto> roomInfoDtos) {
         for (UserChatRoom userChatRoom : userChatRooms) {
 
             roomIds.add(userChatRoom.getChatRoom().getId());
@@ -75,117 +252,10 @@ public class RoomService {
                     .build());
 
         }
-
-        // 방안에 있는 유저수를 구하기 위한 in절 쿼리 연결되어 있는 유저챗룸 , 유저 한번에 join
-        List<ChatRoom> roomList = mainRepositoryService.getRoomList(roomIds);
-
-        // 방 안에 있는 유저 수 구하기
-        for (ChatRoom room : roomList) {
-            int userCount = room.getUserChatRooms().size();
-            roomInfoDtos.get(room.getId()).setJoinedUserCount(userCount);
-
-            // 방 이름 없으면 --> 구해서 집어 넣자
-            if (redisTemplate.opsForValue().get("chatRoomId:" + room.getId() + ":roomName")==null) {
-
-                String roomName = getRoomName(room);
-                roomInfoDtos.get(room.getId()).setRoomName(roomName);
-
-            }
-            // 방 이미지 없으면 --> 구해서 집어 넣자
-            if(redisTemplate.opsForValue().get("chatRoomId:" + room.getId() + ":roomImageUrl")==null){
-                //유저가 두명이라면
-                int usersInRoom = room.getUserChatRooms().size();
-                if (usersInRoom==2){
-                    //상대 유저 이미지 url 가져오기
-                    room.getUserChatRooms().forEach(userChatRoom -> {
-                        if (userChatRoom.getUser().getId() != userId) {
-                            String userImageUrl = userChatRoom.getUser().getUserImageUrl();
-                            roomInfoDtos.get(room.getId()).setRoomImageUrl(List.of(userImageUrl));
-                        }
-                    });
-
-                }
-                // 유저가 3명 이상이라면
-                // 리스트 앞 순위 2명의 이미지 url 가져오기
-                else if (usersInRoom>2){
-                    StringBuilder sb = new StringBuilder();
-                    int flag = 0;
-                    for (int i = 0; i < usersInRoom; i++) {
-                        if (flag<1){
-                            String userImageUrl = room.getUserChatRooms().get(i).getUser().getUserImageUrl();
-                            sb.append(userImageUrl).append(", ");
-                            flag++;
-                        }else {
-                            String userImageUrl = room.getUserChatRooms().get(i).getUser().getUserImageUrl();
-                            sb.append(userImageUrl);
-                            String image = sb.toString();
-                            redisTemplate.opsForValue().set("chatRoomId:" + room.getId() + ":roomImageUrl", image, 30, TimeUnit.MINUTES);
-                            roomInfoDtos.get(room.getId()).setRoomImageUrl(List.of(image.split(", ")));
-                            break;
-                        }
-                    }
-                }
-
-
-            }
-        }
-
-        // 안 읽은 메세지 수, 마지막 메세지 내용을 구하기 위함
-        // HashMap을 루프돌면서 방 id와 떠난 시간을 구해서 새로운 Mao<Long,LocalDateTime>에 넣어준다
-        HashMap<Long, ZonedDateTime> leavedAtByRoom1 = new HashMap<>();
-        HashMap<Long, ZonedDateTime> leavedAtByRoom2 = new HashMap<>();
-        HashMap<Long, ZonedDateTime> leavedAtByRoom3 = new HashMap<>();
-
-        for (UserChatRoom userChatRoom : userChatRooms) {
-            Long roomId = userChatRoom.getChatRoom().getId();
-
-            String shard1 = dataSourceProperty.getShardList().get(0).getKey();
-            String shard2 = dataSourceProperty.getShardList().get(1).getKey();
-
-            if(msgKeySelector.getDbKey(roomId).equals(shard1)){
-                leavedAtByRoom1.put(roomId, userChatRoom.getLeavedAt());
-            }
-            else if(msgKeySelector.getDbKey(roomId).equals(shard2)){
-                leavedAtByRoom2.put(roomId, userChatRoom.getLeavedAt());
-            }
-            else{
-                leavedAtByRoom3.put(roomId, userChatRoom.getLeavedAt());
-            }
-        }
-
-        //leavedAtByRoom1 첫번재 엔트리의 키 값을 가져온다
-        Long lea1 = leavedAtByRoom1.keySet().iterator().next();
-        List<MessageJdbcDto> messageJdbcDtos1 = messageRepositoryService.getAggregates(lea1, leavedAtByRoom1);
-
-        //leavedAtByRoom2 첫번재 엔트리의 키 값을 가져온다
-        Long lea2 = leavedAtByRoom2.keySet().iterator().next();
-        List<MessageJdbcDto> messageJdbcDtos2 = messageRepositoryService.getAggregates(lea2, leavedAtByRoom2);
-
-        //leavedAtByRoom3 첫번재 엔트리의 키 값을 가져온다
-        Long lea3 = leavedAtByRoom3.keySet().iterator().next();
-        List<MessageJdbcDto> messageJdbcDtos3 = messageRepositoryService.getAggregates(lea3, leavedAtByRoom3);
-
-        fillRoomInfoDtos(messageJdbcDtos1, roomInfoDtos);
-        fillRoomInfoDtos(messageJdbcDtos2, roomInfoDtos);
-        fillRoomInfoDtos(messageJdbcDtos3, roomInfoDtos);
-
-        //roomInfoDtos의 값을 List<RoomInfoDto>로 변환해 리턴
-        List<RoomInfoDto> roomInfoList = new ArrayList<>(roomInfoDtos.values());
-        //roomInfoList를 최신순으로 정렬
-        roomInfoList.sort((o1, o2) -> {
-            ZonedDateTime t1 = o1.getLastMessageTime() != null
-                    ? o1.getLastMessageTime()
-                    : LocalDateTime.MIN.atZone(ZoneOffset.UTC);
-            ZonedDateTime t2 = o2.getLastMessageTime() != null
-                    ? o2.getLastMessageTime()
-                    : LocalDateTime.MIN.atZone(ZoneOffset.UTC);
-            // 최신순
-            return t2.compareTo(t1);
-        });
-
-        return roomInfoList;
     }
 
+    
+    
     private String getRoomName(ChatRoom room) {
         List<UserChatRoom> usersInRoom = room.getUserChatRooms();
         StringBuilder sb = new StringBuilder();
@@ -231,16 +301,22 @@ public class RoomService {
         }
     }
 
+    
+    
     public void leaveRoom(Long roomId) {
         Long userId = JwtUtil.getUserId(jwtProperty.getSecret());
         mainRepositoryService.updateLeavedAtToNow(roomId,userId);
     }
 
+    
+    
     public void joinRoom(Long roomId) {
         Long userId = JwtUtil.getUserId(jwtProperty.getSecret());
         mainRepositoryService.updateLeavedAtToNull(roomId, userId);
     }
 
+    
+    
     public RoomDetailsDto getRoomDetails(Long roomId) {
         ChatRoom room = mainRepositoryService.findRoom(roomId);
         String roomName = room.getRoomName();
@@ -261,6 +337,8 @@ public class RoomService {
 
     }
 
+    
+    
     public String getRoomImage(ChatRoom room) {
 
         String imageUrl = redisTemplate.opsForValue().get("chatRoomId:" + room.getId() + ":roomImageUrl");
@@ -285,11 +363,10 @@ public class RoomService {
                 int flag = 0;
                 for (int i = 0; i < usersInRoom; i++) {
                     if (flag<1){
-                        String userImageUrl = room.getUserChatRooms().get(i).getUser().getUserImageUrl();
-                        sb.append(userImageUrl).append(", ");
+                        appendUrlInSb(room, i, sb);
                         flag++;
                     }else {
-                        String userImageUrl = room.getUserChatRooms().get(i).getUser().getUserImageUrl();
+                        String userImageUrl = getImageUrl(room.getUserChatRooms().get(i));
                         sb.append(userImageUrl);
                         break;
                     }
@@ -301,6 +378,8 @@ public class RoomService {
         }
 
     }
+
+
 
     public void createRoom(RoomCreateDto roomCreateDto) {
 
@@ -329,6 +408,8 @@ public class RoomService {
 
         mainRepositoryService.saveUserChatRooms(chatRoom,userChatRooms);
     }
+
+
 
     public List<RoomMessageListDto> getRoomMessages(Long roomId, Pageable pageable) {
 
