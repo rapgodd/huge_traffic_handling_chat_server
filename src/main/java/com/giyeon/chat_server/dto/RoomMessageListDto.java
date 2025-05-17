@@ -4,18 +4,19 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Data
 public class RoomMessageListDto {
     private String senderName;
     private String senderImageUrl;
     private String message;
-    private LocalDateTime createdAt;
+    private ZonedDateTime createdAt;
     private int unreadCount;
     private boolean isMe;
 
     @Builder
-    public RoomMessageListDto(String senderName, String senderImageUrl, String message, LocalDateTime createdAt, int unreadCount, boolean isMe) {
+    public RoomMessageListDto(String senderName, String senderImageUrl, String message, ZonedDateTime createdAt, int unreadCount, boolean isMe) {
         this.senderName = senderName;
         this.senderImageUrl = senderImageUrl;
         this.message = message;

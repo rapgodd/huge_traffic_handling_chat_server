@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,7 +43,7 @@ public class MainRepositoryService {
     @Transactional(readOnly = false)
     public void updateLeavedAtToNow(Long roomId, Long userId) {
         UserChatRoom userInRoom = userChatRoomRepository.findUserInRoom(userId, roomId);
-        userInRoom.updateToNow(LocalDateTime.now());
+        userInRoom.updateToNow(ZonedDateTime.now());
     }
 
     @Transactional(readOnly = false)

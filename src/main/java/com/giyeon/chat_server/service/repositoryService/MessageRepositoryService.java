@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,7 +28,7 @@ public class MessageRepositoryService {
 
     @Sharding
     @Transactional(value = "messagePlatformTransactionManager")
-    public void insertMessage(Long roomId, String message, Long senderId, LocalDateTime createdAt) {
+    public void insertMessage(Long roomId, String message, Long senderId, ZonedDateTime createdAt) {
 
         Message userMessage = Message.builder()
                 .id(idGenerator.nextId())
@@ -72,7 +73,7 @@ public class MessageRepositoryService {
 
     @Sharding
     @Transactional(value = "jdbcTransactionManager")
-    public List<MessageJdbcDto> getAggregates(Long roomId, HashMap<Long,LocalDateTime> shardMap) {
+    public List<MessageJdbcDto> getAggregates(Long roomId, HashMap<Long, ZonedDateTime> shardMap) {
         List<MessageJdbcDto> messageJdbcDtos = messageJdbcRepository.fetchAggregates(shardMap);
 
         return messageJdbcDtos;

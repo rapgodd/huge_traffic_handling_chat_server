@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 @Data
@@ -15,11 +16,11 @@ public class RoomInfoDto {
     private int unreadCount;
     private int joinedUserCount;
     private String lastMessage;
-    private LocalDateTime leavedAt;
-    private LocalDateTime lastMessageTime;
+    private ZonedDateTime leavedAt;
+    private ZonedDateTime lastMessageTime;
 
     @Builder
-    public RoomInfoDto(String roomName, List<String> roomImageUrl, Long roomId, int unreadCount, int joinedUserCount, String lastMessage, LocalDateTime lastMessageTime, LocalDateTime leavedAt) {
+    public RoomInfoDto(String roomName, List<String> roomImageUrl, Long roomId, int unreadCount, int joinedUserCount, String lastMessage, ZonedDateTime lastMessageTime, ZonedDateTime leavedAt) {
         this.leavedAt = leavedAt;
         this.roomName = roomName;
         this.roomImageUrl = roomImageUrl;

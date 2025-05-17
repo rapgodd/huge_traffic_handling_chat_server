@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 
 @Entity
@@ -22,10 +23,10 @@ public class UserChatRoom {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "chat_room_id")
     private ChatRoom chatRoom;
-    private LocalDateTime leavedAt;
+    private ZonedDateTime leavedAt;
 
 
-    public void updateToNow(LocalDateTime now) {
+    public void updateToNow(ZonedDateTime now) {
         this.leavedAt = now;
     }
 
@@ -34,7 +35,7 @@ public class UserChatRoom {
     }
 
     @Builder
-    public UserChatRoom(Long id, User user, ChatRoom chatRoom, LocalDateTime leavedAt) {
+    public UserChatRoom(Long id, User user, ChatRoom chatRoom, ZonedDateTime leavedAt) {
         this.id = id;
         this.user = user;
         this.chatRoom = chatRoom;

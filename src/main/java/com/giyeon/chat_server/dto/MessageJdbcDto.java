@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.ToString;
 
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Getter
 @AllArgsConstructor
@@ -13,5 +14,5 @@ public class MessageJdbcDto {
     private Long roomId;
     private Integer unreadCount;
     private String lastMessage;
-    private LocalDateTime lastMessageTime;
+    private ZonedDateTime lastMessageTime;
 }

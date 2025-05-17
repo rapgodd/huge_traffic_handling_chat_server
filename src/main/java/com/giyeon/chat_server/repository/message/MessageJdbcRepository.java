@@ -8,6 +8,8 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +20,7 @@ public class MessageJdbcRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public List<MessageJdbcDto> fetchAggregates(Map<Long, LocalDateTime> leavedAtByRoom) {
+    public List<MessageJdbcDto> fetchAggregates(Map<Long, ZonedDateTime> leavedAtByRoom) {
         if (leavedAtByRoom.isEmpty()) {
             return List.of();
         }
@@ -35,7 +37,7 @@ public class MessageJdbcRepository {
                 .append("JOIN (\n");
 
         int cnt = 0;
-        for (Map.Entry<Long, LocalDateTime> entry : leavedAtByRoom.entrySet()) {
+        for (Map.Entry<Long, ZonedDateTime> entry : leavedAtByRoom.entrySet()) {
             if (cnt++ > 0) {
                 sql.append("  UNION ALL\n");
             }
@@ -47,7 +49,7 @@ public class MessageJdbcRepository {
 
 
         List<Object> params = new ArrayList<>();
-        for (Map.Entry<Long, LocalDateTime> entry : leavedAtByRoom.entrySet()) {
+        for (Map.Entry<Long, ZonedDateTime> entry : leavedAtByRoom.entrySet()) {
             params.add(entry.getKey());
             params.add(entry.getValue());  // null 허용. CASE WHEN 절에서 false 처리 → unreadCount=0
         }
@@ -55,7 +57,7 @@ public class MessageJdbcRepository {
 
         RowMapper<MessageJdbcDto> rowMapper = (rs, rowNum) -> {
             Timestamp ts = rs.getTimestamp("lastMessageTime");
-            LocalDateTime lastTime = ts == null ? null : ts.toLocalDateTime();
+            ZonedDateTime lastTime = ts == null ? null : ts.toInstant().atZone(ZoneId.systemDefault());
             return new MessageJdbcDto(
                     rs.getLong("roomId"),
                     rs.getInt("unreadCount"),

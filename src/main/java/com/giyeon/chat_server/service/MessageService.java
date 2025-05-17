@@ -18,6 +18,7 @@ import org.springframework.web.socket.WebSocketSession;
 import java.io.IOException;
 import java.net.URI;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -41,7 +42,7 @@ public class MessageService{
         Long roomId = chatDto.getRoomId();
         String payload = chatDto.getMessage();
         Long senderId = chatDto.getSenderId();
-        LocalDateTime createdAt = chatDto.getCreatedAt();
+        ZonedDateTime createdAt = chatDto.getCreatedAt();
 
         messageRepositoryService.insertMessage(roomId,payload,senderId,createdAt);
 

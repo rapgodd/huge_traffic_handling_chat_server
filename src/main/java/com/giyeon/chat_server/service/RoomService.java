@@ -22,6 +22,9 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,7 +35,6 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class RoomService {
 
-    private static final Logger log = LoggerFactory.getLogger(RoomService.class);
     private final MainRepositoryService mainRepositoryService;
     private final MessageRepositoryService messageRepositoryService;
     private final JwtProperty jwtProperty;
@@ -130,9 +132,9 @@ public class RoomService {
 
         // 안 읽은 메세지 수, 마지막 메세지 내용을 구하기 위함
         // HashMap을 루프돌면서 방 id와 떠난 시간을 구해서 새로운 Mao<Long,LocalDateTime>에 넣어준다
-        HashMap<Long, LocalDateTime> leavedAtByRoom1 = new HashMap<>();
-        HashMap<Long, LocalDateTime> leavedAtByRoom2 = new HashMap<>();
-        HashMap<Long, LocalDateTime> leavedAtByRoom3 = new HashMap<>();
+        HashMap<Long, ZonedDateTime> leavedAtByRoom1 = new HashMap<>();
+        HashMap<Long, ZonedDateTime> leavedAtByRoom2 = new HashMap<>();
+        HashMap<Long, ZonedDateTime> leavedAtByRoom3 = new HashMap<>();
 
         for (UserChatRoom userChatRoom : userChatRooms) {
             Long roomId = userChatRoom.getChatRoom().getId();
@@ -171,12 +173,12 @@ public class RoomService {
         List<RoomInfoDto> roomInfoList = new ArrayList<>(roomInfoDtos.values());
         //roomInfoList를 최신순으로 정렬
         roomInfoList.sort((o1, o2) -> {
-            LocalDateTime t1 = o1.getLastMessageTime() != null
+            ZonedDateTime t1 = o1.getLastMessageTime() != null
                     ? o1.getLastMessageTime()
-                    : LocalDateTime.MIN;
-            LocalDateTime t2 = o2.getLastMessageTime() != null
+                    : LocalDateTime.MIN.atZone(ZoneOffset.UTC);
+            ZonedDateTime t2 = o2.getLastMessageTime() != null
                     ? o2.getLastMessageTime()
-                    : LocalDateTime.MIN;
+                    : LocalDateTime.MIN.atZone(ZoneOffset.UTC);
             // 최신순
             return t2.compareTo(t1);
         });
@@ -218,7 +220,7 @@ public class RoomService {
             Long roomId = messageJdbcDto.getRoomId();
             int unreadCount = messageJdbcDto.getUnreadCount();
             String lastMessage = messageJdbcDto.getLastMessage();
-            LocalDateTime lastMessageTime = messageJdbcDto.getLastMessageTime();
+            ZonedDateTime lastMessageTime = messageJdbcDto.getLastMessageTime();
 
             RoomInfoDto roomInfoDto = roomInfoDtos.get(roomId);
             if (roomInfoDto != null) {
@@ -310,7 +312,7 @@ public class RoomService {
                 .id(idGenerator.nextId())
                 .roomName(roomCreateDto.getRoomName())
                 .roomImageUrl(roomCreateDto.getRoomImageUrl())
-                .createdAt(LocalDateTime.now())
+                .createdAt(ZonedDateTime.now())
                 .build();
 
         List<UserChatRoom> userChatRooms = new ArrayList<>();
@@ -320,7 +322,7 @@ public class RoomService {
                     .id(idGenerator.nextId())
                     .user(User.builder().id(id).build())
                     .chatRoom(chatRoom)
-                    .leavedAt(LocalDateTime.now())
+                    .leavedAt(ZonedDateTime.now())
                     .build();
             userChatRooms.add(userChatRoom);
         }
@@ -351,7 +353,7 @@ public class RoomService {
 
             for (UserChatRoom userChatRoom : userChatRoomList) {
 
-                LocalDateTime userExitTime = (userChatRoom.getLeavedAt() == null) ? LocalDateTime.MAX : userChatRoom.getLeavedAt();
+                ZonedDateTime userExitTime = (userChatRoom.getLeavedAt() == null) ? ZonedDateTime.of(LocalDateTime.MAX, ZoneId.systemDefault()) : userChatRoom.getLeavedAt();
 
                 // 메세지 보낸 시간과 유저가 나간 시간 비교
                 if (message.getCreatedAt().isAfter(userExitTime)) {
