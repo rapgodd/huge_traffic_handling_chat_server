@@ -2,8 +2,6 @@ package com.giyeon.chat_server.entity.main;
 
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 
 

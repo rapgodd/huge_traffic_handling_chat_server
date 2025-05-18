@@ -9,7 +9,6 @@ import com.giyeon.chat_server.entity.main.UserChatRoom;
 import com.giyeon.chat_server.entity.message.Message;
 import com.giyeon.chat_server.properties.DataSourceProperty;
 import com.giyeon.chat_server.properties.JwtProperty;
-import com.giyeon.chat_server.repository.message.MessageRepository;
 import com.giyeon.chat_server.service.repositoryService.MainRepositoryService;
 import com.giyeon.chat_server.service.repositoryService.MessageRepositoryService;
 import com.giyeon.chat_server.util.JwtUtil;
@@ -44,8 +43,6 @@ public class RoomService {
     @Autowired
     private DataSourceProperty dataSourceProperty;
     private final IdGenerator idGenerator;
-    private final String shard1Key = dataSourceProperty.getShardList().get(0).getKey();
-    private final String shard2Key = dataSourceProperty.getShardList().get(0).getKey();
 
     public List<RoomInfoDto> getUserRooms(Pageable pageable) {
         // 유저 챗룸 가져오기
@@ -157,13 +154,23 @@ public class RoomService {
 
     private List<MessageJdbcDto> getMessageJdbcDtos(HashMap<Long, ZonedDateTime> roomAndClosedAt1) {
         Long lea1 = getRandomId(roomAndClosedAt1);
-        return messageRepositoryService.getAggregates(lea1, roomAndClosedAt1);
+
+        if (lea1 == 0L) {
+            return List.of();
+        } else {
+            return messageRepositoryService.getAggregates(lea1, roomAndClosedAt1);
+        }
+
     }
 
     
     
-    private Long getRandomId(HashMap<Long, ZonedDateTime> roomAndClosedAt1) {
-        return roomAndClosedAt1.keySet().iterator().next();
+    private Long getRandomId(HashMap<Long, ZonedDateTime> roomAndClosedAt) {
+        if(!roomAndClosedAt.isEmpty()){
+            return roomAndClosedAt.keySet().iterator().next();
+        }else{
+            return 0L;
+        }
     }
 
     
@@ -175,10 +182,10 @@ public class RoomService {
 
         Long roomId = userChatRoom.getChatRoom().getId();
 
-        if(msgKeySelector.getDbKey(roomId).equals(shard1Key)){
+        if(msgKeySelector.getDbKey(roomId).equals(dataSourceProperty.getShardList().get(0).getKey())){
             roomAndClosedAt1.put(roomId, userChatRoom.getLeavedAt());
         }
-        else if(msgKeySelector.getDbKey(roomId).equals(shard2Key)){
+        else if(msgKeySelector.getDbKey(roomId).equals(dataSourceProperty.getShardList().get(1).getKey())){
             roomAndClosedAt2.put(roomId, userChatRoom.getLeavedAt());
         }
         else{
