@@ -22,6 +22,7 @@ public class UserChatRoom {
     @JoinColumn(name = "chat_room_id")
     private ChatRoom chatRoom;
     private ZonedDateTime leavedAt;
+    private Long lastReadMessageId;
 
 
     public void updateToNow(ZonedDateTime now) {
@@ -33,10 +34,11 @@ public class UserChatRoom {
     }
 
     @Builder
-    public UserChatRoom(Long id, User user, ChatRoom chatRoom, ZonedDateTime leavedAt) {
+    public UserChatRoom(Long id, User user, ChatRoom chatRoom, ZonedDateTime leavedAt, Long lastReadMessageId) {
         this.id = id;
         this.user = user;
         this.chatRoom = chatRoom;
         this.leavedAt = leavedAt;
+        this.lastReadMessageId = lastReadMessageId;
     }
 }
