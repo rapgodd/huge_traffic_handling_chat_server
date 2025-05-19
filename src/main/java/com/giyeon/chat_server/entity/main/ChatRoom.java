@@ -40,4 +40,8 @@ public class ChatRoom {
         this.roomName = roomName;
         this.roomImageUrl = roomImagesUrl;
     }
+
+    public void updateLastMessageId(Long lastMsgId) {
+        this.lastMessageId = lastMsgId;
+    }
 }

@@ -23,6 +23,7 @@ public class UserChatRoom {
     private ChatRoom chatRoom;
     private ZonedDateTime leavedAt;
     private Long lastReadMessageId;
+    private Boolean isJoined;
 
 
     public void updateToNow(ZonedDateTime now) {
@@ -40,5 +41,17 @@ public class UserChatRoom {
         this.chatRoom = chatRoom;
         this.leavedAt = leavedAt;
         this.lastReadMessageId = lastReadMessageId;
+    }
+
+    public void updateNewMsgId(Long roomLastMsgId) {
+        this.lastReadMessageId = roomLastMsgId;
+    }
+
+    public void updateIsJoined(Boolean isJoined) {
+        this.isJoined = isJoined;
+    }
+
+    public void updateLeavedAt(ZonedDateTime now) {
+        this.leavedAt = now;
     }
 }
