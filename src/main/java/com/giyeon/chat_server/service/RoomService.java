@@ -429,43 +429,52 @@ public class RoomService {
     }
 
 
+
     public List<RoomMessageListDto> getRoomMessages(Long roomId, Pageable pageable) {
 
-        // 방 --> 메세지 리스트
+        Long currentUserId = JwtUtil.getUserId(jwtProperty.getSecret());
+
+        List<UserChatRoom> userChatRooms = mainRepositoryService.findUserChatRoomList(roomId);
+
+        Map<Long, Long> lastReadByUser = new HashMap<>();
+        Map<Long, User> userById = new HashMap<>();
+        for (UserChatRoom userChatRoom : userChatRooms) {
+            lastReadByUser.put(userChatRoom.getUser().getId(), Optional.ofNullable(userChatRoom.getLastReadMessageId()).orElse(0L));
+            userById.put(userChatRoom.getUser().getId(), userChatRoom.getUser());
+        }
+
+
         List<Message> messages = messageRepositoryService.getMessages(roomId, pageable);
 
-        // jwt --> userId
-        Long userId = JwtUtil.getUserId(jwtProperty.getSecret());
-
-        // 방 --> 유저 챗룸 (Join user)
-        List<UserChatRoom> userChatRoomList = mainRepositoryService.findUserChatRoomList(roomId);
+        List<RoomMessageListDto> roomMessageListDtos = messages.stream().map(msg -> {
+            boolean isMe = msg.getSenderId().equals(currentUserId);
 
 
-        //가져온 메세지 리스트를 dto로 변환
-        List<RoomMessageListDto> returnList = messages.stream().map(message -> {
-            RoomMessageListDto dto = RoomMessageListDto.builder()
-                    .message(message.getMessage())
-                    .createdAt(message.getCreatedAt())
-                    .isMe(message.getSenderId().equals(userId))
+            int unreadCount = (int) lastReadByUser.values().stream()
+                    .filter(lastReadId -> msg.getId() > lastReadId)
+                    .count();
+
+
+            User sender = userById.get(msg.getSenderId());
+
+            return RoomMessageListDto.builder()
+                    .message(msg.getMessage())
+                    .createdAt(msg.getCreatedAt())
+                    .isMe(isMe)
+                    .unreadCount(unreadCount)
+                    .senderName(sender.getName())
+                    .senderImageUrl(sender.getUserImageUrl())
                     .build();
+        }).collect(Collectors.toList());
 
 
-            for (UserChatRoom userChatRoom : userChatRoomList) {
-
-                ZonedDateTime userExitTime = (userChatRoom.getLeavedAt() == null) ? ZonedDateTime.of(LocalDateTime.MAX, ZoneId.systemDefault()) : userChatRoom.getLeavedAt();
-
-                // 메세지 보낸 시간과 유저가 나간 시간 비교
-                if (message.getCreatedAt().isAfter(userExitTime)) {
-                    dto.setUnreadCount(dto.getUnreadCount() + 1);
-                }
-                // 메세지 보낸 유저와 방에 있는 유저 비교
-                if (message.getSenderId().equals(userChatRoom.getUser().getId())) {
-                    dto.setSenderImageUrl(userChatRoom.getUser().getUserImageUrl());
-                    dto.setSenderName(userChatRoom.getUser().getName());
-                }
-            }
-            return dto;
-        }).toList();
+        Collections.sort(roomMessageListDtos, (o1, o2) -> {
+            ZonedDateTime t1 = o1.getCreatedAt();
+            ZonedDateTime t2 = o2.getCreatedAt();
+            return t1.compareTo(t2);
+        });
+        return roomMessageListDtos;
+    }
 
         return returnList;
     }

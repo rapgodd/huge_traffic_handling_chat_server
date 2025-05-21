@@ -1,6 +1,7 @@
 package com.giyeon.chat_server.repository.message;
 
 import com.giyeon.chat_server.entity.message.Message;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

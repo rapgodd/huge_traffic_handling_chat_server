@@ -1,9 +1,8 @@
-package com.giyeon.chat_server.service.repositoryService;
+package com.giyeon.chat_server.service.redisService.repositoryService;
 
 import com.giyeon.chat_server.annotation.Sharding;
 import com.giyeon.chat_server.component.IdGenerator;
 import com.giyeon.chat_server.dto.MessageJdbcDto;
-import com.giyeon.chat_server.dto.RoomMessagesDto;
 import com.giyeon.chat_server.entity.message.Message;
 import com.giyeon.chat_server.repository.message.MessageJdbcRepository;
 import com.giyeon.chat_server.repository.message.MessageRepository;
@@ -14,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -28,10 +26,11 @@ public class MessageRepositoryService {
 
     @Sharding
     @Transactional(value = "messagePlatformTransactionManager")
-    public void insertMessage(Long roomId, String message, Long senderId, ZonedDateTime createdAt) {
+    public Long insertMessage(Long roomId, String message, Long senderId, ZonedDateTime createdAt) {
 
+        Long id = idGenerator.nextId();
         Message userMessage = Message.builder()
-                .id(idGenerator.nextId())
+                .id(id)
                 .message(message)
                 .roomId(roomId)
                 .senderId(senderId)
@@ -40,6 +39,7 @@ public class MessageRepositoryService {
 
         messageRepository.save(userMessage);
         System.out.println("insertMessage: " + userMessage);
+        return id;
     }
 
     @Sharding
@@ -47,7 +47,6 @@ public class MessageRepositoryService {
     public List<Message> getMessages(Long roomId, Pageable pageable) {
 
         return messageRepository.findByRoomIdOrderByCreatedAtDesc(roomId, pageable);
-
     }
 
     @Sharding
@@ -73,10 +72,15 @@ public class MessageRepositoryService {
 
     @Sharding
     @Transactional(value = "jdbcTransactionManager")
-    public List<MessageJdbcDto> getAggregates(Long roomId, HashMap<Long, ZonedDateTime> shardMap) {
-        List<MessageJdbcDto> messageJdbcDtos = messageJdbcRepository.fetchAggregates(shardMap);
+    public List<MessageJdbcDto> getAggregates(Long roomId, HashMap<Long, Long> roomAndLastMsgId) {
+        List<MessageJdbcDto> messageJdbcDtos = messageJdbcRepository.fetchAggregates(roomAndLastMsgId);
 
         return messageJdbcDtos;
     }
 
+    @Sharding
+    @Transactional(value = "messagePlatformTransactionManager")
+    public void save(Long roomId, Message msg) {
+        messageRepository.save(msg);
+    }
 }
