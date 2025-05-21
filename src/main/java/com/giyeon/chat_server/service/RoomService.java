@@ -394,11 +394,14 @@ public class RoomService {
         List<Long> userIds = roomCreateDto.getOtherUserIds();
         userIds.add(userId);
 
+        Long chatRoomId = idGenerator.nextId();
+
         ChatRoom chatRoom = ChatRoom.builder()
-                .id(idGenerator.nextId())
+                .id(chatRoomId)
                 .roomName(roomCreateDto.getRoomName())
                 .roomImageUrl(roomCreateDto.getRoomImageUrl())
                 .createdAt(ZonedDateTime.now())
+                .lastMessageId(0L)
                 .build();
 
         List<UserChatRoom> userChatRooms = new ArrayList<>();
@@ -408,14 +411,22 @@ public class RoomService {
                     .id(idGenerator.nextId())
                     .user(User.builder().id(id).build())
                     .chatRoom(chatRoom)
-                    .leavedAt(ZonedDateTime.now())
+                    .isJoined(false)
+                    .lastReadMessageId(0L)
                     .build();
             userChatRooms.add(userChatRoom);
         }
 
         mainRepositoryService.saveUserChatRooms(chatRoom,userChatRooms);
+        storeRoomAndMsgFirstId(userIds, chatRoomId);
+
     }
 
+    private void storeRoomAndMsgFirstId(List<Long> userIds, Long chatRoomId) {
+        for (Long userId : userIds) {
+            redisService.putUserLastMsgIdInRoom(userId, chatRoomId, "0");
+        }
+    }
 
 
     public List<RoomMessageListDto> getRoomMessages(Long roomId, Pageable pageable) {
