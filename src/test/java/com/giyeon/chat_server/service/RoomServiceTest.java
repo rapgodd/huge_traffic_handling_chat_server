@@ -182,16 +182,275 @@ class RoomServiceTest {
             redisTemplate.delete("user:1:roomAndLastMsgId");
             redisTemplate.delete("user:2:roomAndLastMsgId");
 
-        }
-        if (testInfo.getTags().contains("getRoomMessages")) {
-            messageRepository.deleteAll();
-            userChatRoomRepository.deleteAll();
-            userRepository.deleteAll();
-            roomRepository.deleteAll();
+    @Test
+    @Tag("closeRoom")
+    void closeRoom(){
 
+        User user1 = createUser(1L, "user1");
+        User user2 = createUser(2L, "user2");
+
+        ChatRoom room = createRoomWithUsers(1L, user1, user2);
+
+        redisTemplate.opsForSet().add("room:" + room.getId() + ":joinedUser", String.valueOf(1L), String.valueOf(2L));
+
+        //when
+        roomService.closeRoom(room.getId());
+        int size = redisTemplate.opsForSet().members("room:" + room.getId() + ":joinedUser").size();
+        UserChatRoom closedUc = userChatRoomRepository.findUserChatRoomByUserIdAndRoomId(1L, room.getId());
+
+        //then
+        Assertions.assertTrue(closedUc.getLeavedAt() == null);
+        Assertions.assertTrue(!closedUc.getIsJoined());
+        Assertions.assertTrue(closedUc.getChatRoom().getId().equals(room.getId()));
+        Assertions.assertTrue(closedUc.getUser().getId() == 1L);
+        Assertions.assertEquals(size, 1);
+
+
+
+
+    }
+
+    @Test
+    @Tag("getUserRooms")
+    void getUserRooms() {
+        // given
+        // 1. 사용자 6명 생성
+        User u1 = createUser(1L, "user1");
+        User u2 = createUser(2L, "user2");
+        User u3 = createUser(3L, "user3");
+        User u4 = createUser(4L, "user4");
+        User u5 = createUser(5L, "user5");
+        User u6 = createUser(6L, "user6");
+
+        // 2. 방 5개 생성 및 유저 매핑
+        ChatRoom r1 = createRoomWithUsers(1L, u1, u2);
+        ChatRoom r2 = createRoomWithUsers(2L, u1, u3);
+        ChatRoom r3 = createRoomWithUsers(3L, u1, u4);
+        ChatRoom r4 = createRoomWithUsers(4L, u1, u5);
+        ChatRoom r5 = createRoomWithUsers(5L, u1, u2, u3, u4, u5, u6);
+
+        // 3. 각 방에 메시지 5개씩
+        RoomData r1Data = insertMessages(r1, 2L, 5);
+        RoomData r2Data = insertMessages(r2, 3L, 5);
+        Room2Data r3Data = insertMessagesReturnRoom2Data(r3, 4L, 5);
+        Room2Data r4Data = insertMessagesReturnRoom2Data(r4, 1L, 5);
+        RoomData r5Data = insertMessages(r5, 2L, 5);
+        // userChatROom에 마지막 메시지 id 업데이트
+        updateUcrLastMsg(r1, r1Data);
+        updateUcrLastMsg(r2, r2Data);
+        updateUcrLastMsgRoom2Data(r3, r3Data);
+        updateUcrLastMsgRoom2Data(r4, r4Data);
+        updateUcrLastMsg(r5, r5Data);
+
+        // when
+        Pageable pageable = PageRequest.of(0, 50);
+        List<RoomInfoDto> result = roomService.getUserRooms(pageable);
+
+        // then
+        // result의 lastMessageTime이 내림차순으로 정렬되었는지 확인
+        for (int i = 0; i < result.size() - 1; i++) {
+            ZonedDateTime current = result.get(i).getLastMessageTime();
+            ZonedDateTime next    = result.get(i + 1).getLastMessageTime();
+            assertFalse(current.isBefore(next));
+        }
+
+        // 안읽은 메세지 수 제대로 계산되었는지 확인
+        for (RoomInfoDto roomInfoDto : result) {
+            if(roomInfoDto.getRoomId()==3L||roomInfoDto.getRoomId()==4L){
+                assertThat(roomInfoDto.getUnreadCount()).isEqualTo(3);    
+            }
+        }
+
+        assertThat(result)
+                .extracting(RoomInfoDto::getRoomImageUrl)
+                .allMatch(url -> url != null);
+
+        assertThat(result)
+                .extracting(RoomInfoDto::getRoomId)
+                .allMatch(id -> id != null);
+
+        // joinedUserCount 내림차순 정렬 후 검증
+        result.sort((a, b) -> Integer.compare(b.getJoinedUserCount(), a.getJoinedUserCount()));
+        assertThat(result.get(0).getJoinedUserCount()).isEqualTo(6);
+        assertThat(result.get(1).getJoinedUserCount()).isEqualTo(2);
+
+        // r1 최종 메시지 확인
+        RoomInfoDto dto1 = result.stream()
+                .filter(dto -> dto.getRoomId().equals(r1.getId()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(dto1.getLastMessage()).isEqualTo(r1Data.lastMessage);
+        LocalDateTime lastMessageTime = dto1.getLastMessageTime().toLocalDateTime();
+        LocalDateTime r1LastMsgTime = r1Data.lastMessageTime.toLocalDateTime();
+        assertThat(lastMessageTime).isEqualTo(r1LastMsgTime);
+    }
+
+    private void updateUcrLastMsgRoom2Data(ChatRoom r, Room2Data r2Data) {
+        UserChatRoom ucr = userChatRoomRepository.findUserChatRoomByUserIdAndRoomId(1L, r.getId());
+        ucr.updateNewMsgId(r2Data.secMessageId);
+        userChatRoomRepository.save(ucr);
+    }
+
+    private void updateUcrLastMsg(ChatRoom r, RoomData rData) {
+        UserChatRoom ucr = userChatRoomRepository.findUserChatRoomByUserIdAndRoomId(1L, r.getId());
+        ucr.updateNewMsgId(rData.lastMessageId);
+        userChatRoomRepository.save(ucr);
+    }
+
+
+    @Test
+    void getOnlyJoinedUserRooms() {
+
+        // given
+        User u1 = createUser(1L, "user1");
+        User u2 = createUser(2L, "user2");
+        ChatRoom r1 = createRoomWithUsers(1L, u1, u2);
+        insertMessages(r1, 2L, 5);
+        UserChatRoom ucr1 = userChatRoomRepository.findUserChatRoomByUserIdAndRoomId(1L, r1.getId());
+        ucr1.updateLeavedAt(ZonedDateTime.now());
+        userChatRoomRepository.save(ucr1);
+        Pageable pageable = PageRequest.of(0, 50);
+
+        // when
+        List<RoomInfoDto> result = roomService.getUserRooms(pageable);
+
+        // then
+        assertThat(result.size()).isEqualTo(0);
+    }
+
+
+        private User createUser(Long id, String name) {
+        User u = User.builder()
+                .id(id)
+                .name(name)
+                .email(name + "@example.com")
+                .userImageUrl("https://example.com/" + name + ".jpg")
+                .password("pass")
+                .userRole(Role.ROLE_USER)
+                .build();
+        return userRepository.save(u);
+    }
+
+    private ChatRoom createRoomWithUsers(Long roomId, User... users) {
+        ChatRoom room = ChatRoom.builder()
+                .id(roomId)
+                .lastMessageId(0L)
+                .createdAt(ZonedDateTime.now())
+                .build();
+        roomRepository.save(room);
+
+        for (User u : users) {
+            UserChatRoom ucr = UserChatRoom.builder()
+                    .id(idGenerator.nextId())
+                    .user(u)
+                    .chatRoom(room)
+                    .isJoined(true)
+                    .leavedAt(null)
+                    .lastReadMessageId(0L)
+                    .build();
+            userChatRoomRepository.save(ucr);
+        }
+        return room;
+    }
+
+    private RoomData insertMessages(ChatRoom room, Long senderId, int count) {
+        String lastMsg = null;
+        ZonedDateTime lastTime = null;
+        Long lastMsgId = 0L;
+
+        long roomOffset = room.getId() * (count + 1L);
+
+        ZonedDateTime base = ZonedDateTime.now(ZoneId.of("UTC"))
+                .truncatedTo(ChronoUnit.SECONDS)
+                .plusSeconds(roomOffset);
+
+        for (int i = 1; i <= count; i++) {
+            ZonedDateTime ts = base.plusSeconds(i);
+            Message msg = Message.builder()
+                    .id(idGenerator.nextId())
+                    .roomId(room.getId())
+                    .senderId(senderId)
+                    .message(room.getId() + " msg" + i)
+                    .createdAt(ts)
+                    .build();
+            messageService.save(room.getId(), msg);
+
+            if (i == count) {
+                lastMsg    = msg.getMessage();
+                lastTime   = ts;
+                lastMsgId  = msg.getId();
+            }
+        }
+        return new RoomData(lastMsg, lastTime, lastMsgId);
+    }
+
+    private Room2Data insertMessagesReturnRoom2Data(ChatRoom room, Long senderId, int count) {
+        String secMsg = null;
+        ZonedDateTime secTime = null;
+        Long secId = 0L;
+
+        long roomOffset = room.getId() * (count + 1L);
+
+        ZonedDateTime base = ZonedDateTime.now(ZoneId.of("UTC"))
+                .truncatedTo(ChronoUnit.SECONDS)
+                .plusSeconds(roomOffset);
+
+        for (int i = 1; i <= count; i++) {
+            ZonedDateTime ts = base.plusSeconds(i);
+            Message msg = Message.builder()
+                    .id(idGenerator.nextId())
+                    .roomId(room.getId())
+                    .senderId(senderId)
+                    .message(room.getId() + " msg" + i)
+                    .createdAt(ts)
+                    .build();
+            messageService.save(room.getId(), msg);
+
+            if (i == 2) {
+                secMsg    = msg.getMessage();
+                secTime   = ts;
+                secId  = msg.getId();
+            }
+        }
+        return new Room2Data(secMsg, secTime, secId);
+    }
+
+    private static class RoomData {
+        final String lastMessage;
+        final ZonedDateTime lastMessageTime;
+        final Long lastMessageId;
+
+        RoomData(String msg, ZonedDateTime time, Long lastMessageId) {
+            this.lastMessage = msg;
+            this.lastMessageTime = time;
+            this.lastMessageId = lastMessageId;
         }
     }
 
+    private static class Room2Data {
+        final String secMessage;
+        final ZonedDateTime secMessageTime;
+        final Long secMessageId;
+
+        Room2Data(String secMsg, ZonedDateTime secTime, Long secMessageId) {
+            this.secMessage = secMsg;
+            this.secMessageTime = secTime;
+            this.secMessageId = secMessageId;
+        }
+    }
+
+    @AfterEach
+    void tearDown() {
+        messageRepository.deleteAll();
+        userChatRoomRepository.deleteAll();
+        userRepository.deleteAll();
+        roomRepository.deleteAll();
+
+        redisTemplate.delete("user:1:roomAndLastMsgId");
+        redisTemplate.delete("user:2:roomAndLastMsgId");
+        redisTemplate.delete("room:1:joinedUser");
+
+    }
     @AfterAll
     static void afterAll() {
         jwtUtilMockedStatic.close();
