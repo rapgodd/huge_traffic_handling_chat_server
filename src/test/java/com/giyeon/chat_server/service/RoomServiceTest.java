@@ -2,6 +2,7 @@ package com.giyeon.chat_server.service;
 
 import com.giyeon.chat_server.component.IdGenerator;
 import com.giyeon.chat_server.dto.RoomCreateDto;
+import com.giyeon.chat_server.dto.RoomInfoDto;
 import com.giyeon.chat_server.dto.RoomMessageListDto;
 import com.giyeon.chat_server.entity.main.ChatRoom;
 import com.giyeon.chat_server.entity.main.Role;
@@ -12,26 +13,45 @@ import com.giyeon.chat_server.repository.main.RoomRepository;
 import com.giyeon.chat_server.repository.main.UserChatRoomRepository;
 import com.giyeon.chat_server.repository.main.UserRepository;
 import com.giyeon.chat_server.repository.message.MessageRepository;
+import com.giyeon.chat_server.service.msgSender.JoinMsgSenderService;
+import com.giyeon.chat_server.service.msgSender.threadPoolSender.ThreadSendingService;
+import com.giyeon.chat_server.service.redisService.repositoryService.MainRepositoryService;
 import com.giyeon.chat_server.service.redisService.repositoryService.MessageRepositoryService;
 import com.giyeon.chat_server.util.JwtUtil;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.BDDMockito;
+import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+import org.mockito.internal.stubbing.answers.DoesNothing;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import static org.mockito.ArgumentMatchers.anyString;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.mockito.ArgumentMatchers.*;
 
 
 @SpringBootTest
+@ExtendWith(MockitoExtension.class)
 class RoomServiceTest {
 
+    private static final Logger log = LoggerFactory.getLogger(RoomServiceTest.class);
     @Autowired
     private RoomService roomService;
     @Autowired
@@ -49,11 +69,52 @@ class RoomServiceTest {
     @Autowired
     private MessageRepositoryService messageService;
     private static MockedStatic<JwtUtil> jwtUtilMockedStatic;
+    @Autowired
+    private MainRepositoryService mainRepositoryService;
+    @MockitoBean
+    private JoinMsgSenderService joinMsgSenderService;
+
 
     @BeforeAll
     static void beforeAll() {
         jwtUtilMockedStatic = Mockito.mockStatic(JwtUtil.class);
         jwtUtilMockedStatic.when(() -> JwtUtil.getUserId(anyString())).thenReturn(1L);
+    }
+
+    @Test
+    @Tag("joinRoom")
+    void joinRoom() throws InterruptedException {
+
+        //given
+        BDDMockito.doNothing().when(joinMsgSenderService).sendJoinMsgToLocal(anyList(), anyLong(), anyLong());
+        // 유저 생성
+        User user1 = createUser(1L, "user1");
+        User user2 = createUser(2L, "user2");
+        // 방 생성
+        ChatRoom roomWithUsersIsJoinedFalse = createRoomWithUsers_isJoined_false(1L, user1, user2);
+        Long roomId = roomWithUsersIsJoinedFalse.getId();
+
+        //when
+        //방 입장
+        roomService.joinRoom(roomId);
+        String key = "room:" + roomId + ":joinedUser";
+        String lastMsgKey = "user:" + user1.getId() + ":roomAndLastMsgId";
+        String roomLastMsgIdKey = "room:1:lastMsgId";
+        UserChatRoom room = userChatRoomRepository.findUserChatRoomByUserIdAndRoomId(user1.getId(), roomId);
+
+        //then
+        //redis에 제대로 방에 입장한 유저 목록에 1있어야 함
+        assertThat(redisTemplate.opsForSet().members(key)).allMatch((a) -> {
+            return a.equals("1");
+        });
+        //redis 유저의 방 마지막 메세지가 0L로 되어 있어야 함
+        assertThat((String)redisTemplate.opsForHash().get(lastMsgKey, String.valueOf(roomId))).isEqualTo(String.valueOf(0));
+        //Redis의 방 마지막 메세지가 설정되어 있어야 함
+        assertThat((String) redisTemplate.opsForValue().get(roomLastMsgIdKey)).isEqualTo("0");
+        //db에 userChatRoom.getIsJoined()값이 true이어야 함
+        assertThat(room.getIsJoined()).isTrue();
+        //db userChatRoom.getLastReadMessageId가 업데이트 되었는지 확인
+        assertThat(room.getLastReadMessageId()).isEqualTo(0L);
     }
 
     @Test
@@ -163,7 +224,7 @@ class RoomServiceTest {
             if (result.get(i).getSenderName().equals("user1")) {
                 Assertions.assertTrue(result.get(i).isMe());
             } else {
-                Assertions.assertFalse(result.get(i).isMe());
+                assertFalse(result.get(i).isMe());
             }
 
         }
@@ -441,7 +502,9 @@ class RoomServiceTest {
 
     @AfterEach
     void tearDown() {
-        messageRepository.deleteAll();
+        messageService.deleteAll(1L);
+        messageService.deleteAll(2L);
+        messageService.deleteAll(3L);
         userChatRoomRepository.deleteAll();
         userRepository.deleteAll();
         roomRepository.deleteAll();
@@ -449,6 +512,7 @@ class RoomServiceTest {
         redisTemplate.delete("user:1:roomAndLastMsgId");
         redisTemplate.delete("user:2:roomAndLastMsgId");
         redisTemplate.delete("room:1:joinedUser");
+        redisTemplate.delete("room:1:lastMsgId");
 
     }
     @AfterAll
