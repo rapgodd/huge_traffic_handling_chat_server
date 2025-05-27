@@ -1,5 +1,7 @@
 package com.giyeon.chat_server.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.giyeon.chat_server.component.IdGenerator;
 import com.giyeon.chat_server.component.MsgKeySelector;
 import com.giyeon.chat_server.dto.*;
@@ -9,26 +11,27 @@ import com.giyeon.chat_server.entity.main.UserChatRoom;
 import com.giyeon.chat_server.entity.message.Message;
 import com.giyeon.chat_server.properties.DataSourceProperty;
 import com.giyeon.chat_server.properties.JwtProperty;
-import com.giyeon.chat_server.service.repositoryService.MainRepositoryService;
-import com.giyeon.chat_server.service.repositoryService.MessageRepositoryService;
+import com.giyeon.chat_server.service.msgSender.JoinMsgSenderService;
+import com.giyeon.chat_server.service.msgSender.threadPoolSender.ThreadSendingService;
+import com.giyeon.chat_server.service.redisService.RedisService;
+import com.giyeon.chat_server.service.redisService.repositoryService.MainRepositoryService;
+import com.giyeon.chat_server.service.redisService.repositoryService.MessageRepositoryService;
+import com.giyeon.chat_server.util.IdDistributionUtils;
 import com.giyeon.chat_server.util.JwtUtil;
+import com.giyeon.chat_server.ws.SessionRegistry;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.web.socket.TextMessage;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,19 +41,21 @@ public class RoomService {
     private final MessageRepositoryService messageRepositoryService;
     private final JwtProperty jwtProperty;
     @Autowired
-    private RedisTemplate<String, String> redisTemplate;
+    private RedisTemplate<String, Object> redisTemplate;
     private final MsgKeySelector msgKeySelector;
     @Autowired
     private DataSourceProperty dataSourceProperty;
     private final IdGenerator idGenerator;
+    private final SessionRegistry sessionRegistry;
+    private final RedisService redisService;
+    private final JoinMsgSenderService joinMsgSenderService;
 
     public List<RoomInfoDto> getUserRooms(Pageable pageable) {
         // 유저 챗룸 가져오기
         Long userId = JwtUtil.getUserId(jwtProperty.getSecret());
-        User user = User.builder().id(userId).build();
 
         // roomInfoDtos를 채우기 위한 userChatRoom 리스트
-        List<UserChatRoom> userChatRooms = mainRepositoryService.getUserChatRooms(user, pageable);
+        List<UserChatRoom> userChatRooms = mainRepositoryService.getUserChatRooms(userId, pageable);
 
 
         HashMap<Long,RoomInfoDto> roomInfoDtos = new HashMap<>(50);
@@ -68,7 +73,7 @@ public class RoomService {
             // 방 이름 없으면 --> 구해서 집어 넣자
             if (redisTemplate.opsForValue().get("chatRoomId:" + room.getId() + ":roomName")==null) {
 
-                String roomName = getRoomName(room);
+                String roomName = getRoomName(room, userId);
                 roomInfoDtos.get(room.getId()).setRoomName(roomName);
 
             }
@@ -87,7 +92,7 @@ public class RoomService {
                     StringBuilder sb = new StringBuilder();
                     int flag = 0;
                     for (int i = 0; i < usersInRoom; i++) {
-                        
+
                         if (flag<1){
                             appendUrlInSb(room, i, sb);
                             flag++;
@@ -96,7 +101,7 @@ public class RoomService {
                             setRoomImages(room, sb, roomInfoDtos);
                             break;
                         }
-                        
+
                     }
                 }
 
@@ -312,23 +317,47 @@ public class RoomService {
     
     public void leaveRoom(Long roomId) {
         Long userId = JwtUtil.getUserId(jwtProperty.getSecret());
-        mainRepositoryService.updateLeavedAtToNow(roomId,userId);
+        redisService.removeJoinedUserInRoom(userId, roomId);
+        mainRepositoryService.removeJoinedUserInRoom(roomId, userId);
     }
 
     
     
     public void joinRoom(Long roomId) {
+
+        // 마지막 메세지 id 가져와서 세션 전송
         Long userId = JwtUtil.getUserId(jwtProperty.getSecret());
-        mainRepositoryService.updateLeavedAtToNull(roomId, userId);
+        Long lastReadMsgId = redisService.getUserLastReadMsgIdInRoom(userId, roomId);
+
+        // grpc또는 세션 전송
+        // 방에 있는 유저 set 다 가져오기
+        List<Long> currentJoinedUsers = redisService.getCurrentJoinedUsers(roomId);
+
+        List<Long> localSessionUsersList = new ArrayList<>(30);
+        List<Long> remoteSessionUsersList = new ArrayList<>(30);
+
+        IdDistributionUtils.distributeRemoteAndLocal(currentJoinedUsers, localSessionUsersList,
+                remoteSessionUsersList, sessionRegistry, redisTemplate);
+
+        // 로컬 전송
+        joinMsgSenderService.sendJoinMsgToLocal(localSessionUsersList, userId, lastReadMsgId);
+        // 원격 전송
+        joinMsgSenderService.sendJoinMsgToRemote(remoteSessionUsersList, roomId, userId, lastReadMsgId);
+        // 유저 리스트에 추가
+        redisService.addCurrentJoinedUser(userId, roomId);
+        // 마지막 메세지 가져오기
+        Long roomLastMsgId = redisService.getLastMsgIdInRoom(roomId);
+        // redis & user 저장
+        redisService.putUserLastMsgIdInRoom(userId, roomId, String.valueOf(roomLastMsgId));
     }
 
-    
-    
+
     public RoomDetailsDto getRoomDetails(Long roomId) {
+        Long userId = JwtUtil.getUserId(jwtProperty.getSecret());
         ChatRoom room = mainRepositoryService.findRoom(roomId);
         String roomName = room.getRoomName();
         String roomImageUrl = room.getRoomImageUrl();
-        String finalRoomName = (roomName ==null)? getRoomName(room) : roomName;
+        String finalRoomName = (roomName ==null)? getRoomName(room,userId) : roomName;
         String roomImage = roomImageUrl==null?getRoomImage(room): roomImageUrl;
         int usersInRoom = room.getUserChatRooms().size();
         String notification = room.getNotification();
@@ -348,7 +377,7 @@ public class RoomService {
     
     public String getRoomImage(ChatRoom room) {
 
-        String imageUrl = redisTemplate.opsForValue().get("chatRoomId:" + room.getId() + ":roomImageUrl");
+        String imageUrl = (String) redisTemplate.opsForValue().get("chatRoomId:" + room.getId() + ":roomImageUrl");
         if(imageUrl ==null){
 
             int usersInRoom = room.getUserChatRooms().size();
