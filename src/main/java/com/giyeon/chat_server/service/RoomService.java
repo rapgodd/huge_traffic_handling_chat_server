@@ -111,20 +111,20 @@ public class RoomService {
 
         // 안 읽은 메세지 수, 마지막 메세지 내용을 구하기 위함
         // HashMap을 루프돌면서 방 id와 떠난 시간을 구해서 새로운 Mao<Long,LocalDateTime>에 넣어준다
-        HashMap<Long, ZonedDateTime> roomAndClosedAt1 = new HashMap<>();
-        HashMap<Long, ZonedDateTime> roomAndClosedAt2 = new HashMap<>();
-        HashMap<Long, ZonedDateTime> roomAndClosedAt3 = new HashMap<>();
+        HashMap<Long, Long> roomAndLastReadMsgId1 = new HashMap<>();
+        HashMap<Long, Long> roomAndLastReadMsgId2 = new HashMap<>();
+        HashMap<Long, Long> roomAndLastReadMsgId3 = new HashMap<>();
 
         for (UserChatRoom userChatRoom : userChatRooms) {
 
-            fillRoomAndClosedAt(userChatRoom,
-                    roomAndClosedAt1,
-                    roomAndClosedAt2,
-                    roomAndClosedAt3);
+            fillRoomAndLastMsgId(userChatRoom,
+                    roomAndLastReadMsgId1,
+                    roomAndLastReadMsgId2,
+                    roomAndLastReadMsgId3);
 
         }
 
-        fillJdbcInReturnDto(roomAndClosedAt1, roomAndClosedAt2, roomAndClosedAt3, roomInfoDtos);
+        fillJdbcInReturnDto(roomAndLastReadMsgId1, roomAndLastReadMsgId2, roomAndLastReadMsgId3, roomInfoDtos);
 
 
         List<RoomInfoDto> roomInfoList = new ArrayList<>(roomInfoDtos.values());
@@ -146,10 +146,10 @@ public class RoomService {
         });
     }
 
-    private void fillJdbcInReturnDto(HashMap<Long, ZonedDateTime> roomAndClosedAt1, HashMap<Long, ZonedDateTime> roomAndClosedAt2, HashMap<Long, ZonedDateTime> roomAndClosedAt3, HashMap<Long, RoomInfoDto> roomInfoDtos) {
-        List<MessageJdbcDto> messageJdbcDtos1 = getMessageJdbcDtos(roomAndClosedAt1);
-        List<MessageJdbcDto> messageJdbcDtos2 = getMessageJdbcDtos(roomAndClosedAt2);
-        List<MessageJdbcDto> messageJdbcDtos3 = getMessageJdbcDtos(roomAndClosedAt3);
+    private void fillJdbcInReturnDto(HashMap<Long, Long> roomAndLastMsgId1, HashMap<Long, Long> roomAndLastMsgId2, HashMap<Long, Long> roomAndLastMsgId3, HashMap<Long, RoomInfoDto> roomInfoDtos) {
+        List<MessageJdbcDto> messageJdbcDtos1 = getMessageJdbcDtos(roomAndLastMsgId1);
+        List<MessageJdbcDto> messageJdbcDtos2 = getMessageJdbcDtos(roomAndLastMsgId2);
+        List<MessageJdbcDto> messageJdbcDtos3 = getMessageJdbcDtos(roomAndLastMsgId3);
 
         fillRoomInfoDtos(messageJdbcDtos1, roomInfoDtos);
         fillRoomInfoDtos(messageJdbcDtos2, roomInfoDtos);
@@ -157,22 +157,22 @@ public class RoomService {
     }
 
 
-    private List<MessageJdbcDto> getMessageJdbcDtos(HashMap<Long, ZonedDateTime> roomAndClosedAt1) {
-        Long lea1 = getRandomId(roomAndClosedAt1);
+    private List<MessageJdbcDto> getMessageJdbcDtos(HashMap<Long, Long> roomAndLastReadMsgId) {
+        Long lea1 = getRandomId(roomAndLastReadMsgId);
 
         if (lea1 == 0L) {
             return List.of();
         } else {
-            return messageRepositoryService.getAggregates(lea1, roomAndClosedAt1);
+            return messageRepositoryService.getAggregates(lea1, roomAndLastReadMsgId);
         }
 
     }
 
     
     
-    private Long getRandomId(HashMap<Long, ZonedDateTime> roomAndClosedAt) {
-        if(!roomAndClosedAt.isEmpty()){
-            return roomAndClosedAt.keySet().iterator().next();
+    private Long getRandomId(HashMap<Long, Long> roomAndLastReadMsgId) {
+        if(!roomAndLastReadMsgId.isEmpty()){
+            return roomAndLastReadMsgId.keySet().iterator().next();
         }else{
             return 0L;
         }
@@ -180,21 +180,21 @@ public class RoomService {
 
     
     
-    private void fillRoomAndClosedAt(UserChatRoom userChatRoom,
-                                     HashMap<Long, ZonedDateTime> roomAndClosedAt1, 
-                                     HashMap<Long, ZonedDateTime> roomAndClosedAt2,
-                                     HashMap<Long, ZonedDateTime> roomAndClosedAt3) {
+    private void fillRoomAndLastMsgId(UserChatRoom userChatRoom,
+                                     HashMap<Long, Long> roomAndLastReadMsgId1,
+                                     HashMap<Long, Long> roomAndLastReadMsgId2,
+                                     HashMap<Long, Long> roomAndLastReadMsgId3) {
 
         Long roomId = userChatRoom.getChatRoom().getId();
 
         if(msgKeySelector.getDbKey(roomId).equals(dataSourceProperty.getShardList().get(0).getKey())){
-            roomAndClosedAt1.put(roomId, userChatRoom.getLeavedAt());
+            roomAndLastReadMsgId1.put(roomId, userChatRoom.getLastReadMessageId());
         }
         else if(msgKeySelector.getDbKey(roomId).equals(dataSourceProperty.getShardList().get(1).getKey())){
-            roomAndClosedAt2.put(roomId, userChatRoom.getLeavedAt());
+            roomAndLastReadMsgId2.put(roomId, userChatRoom.getLastReadMessageId());
         }
         else{
-            roomAndClosedAt3.put(roomId, userChatRoom.getLeavedAt());
+            roomAndLastReadMsgId3.put(roomId, userChatRoom.getLastReadMessageId());
         }
     }
 
@@ -251,14 +251,13 @@ public class RoomService {
         for (UserChatRoom userChatRoom : userChatRooms) {
 
             roomIds.add(userChatRoom.getChatRoom().getId());
-            String roomName = redisTemplate.opsForValue().get("chatRoomId:" + userChatRoom.getChatRoom().getId() + ":roomName");
-            String imageUrl = redisTemplate.opsForValue().get("chatRoomId:" + userChatRoom.getChatRoom().getId() + ":roomImageUrl");
+            String roomName = (String) redisTemplate.opsForValue().get("chatRoomId:" + userChatRoom.getChatRoom().getId() + ":roomName");
+            String imageUrl = (String) redisTemplate.opsForValue().get("chatRoomId:" + userChatRoom.getChatRoom().getId() + ":roomImageUrl");
 
 
             // 해쉬맵에 [key : 방 id , value : 방 정보]저장
             roomInfoDtos.put(userChatRoom.getChatRoom().getId(), RoomInfoDto.builder()
                     .roomId(userChatRoom.getChatRoom().getId())
-                    .leavedAt(userChatRoom.getLeavedAt()!=null ? userChatRoom.getLeavedAt() : null)
                     .roomName(roomName)
                     .roomImageUrl(imageUrl==null ? Collections.emptyList() : List.of(imageUrl.split(", ")))
                     .build());
@@ -268,7 +267,7 @@ public class RoomService {
 
     
     
-    private String getRoomName(ChatRoom room) {
+    private String getRoomName(ChatRoom room, Long userId) {
         List<UserChatRoom> usersInRoom = room.getUserChatRooms();
         StringBuilder sb = new StringBuilder();
 
@@ -276,8 +275,15 @@ public class RoomService {
         for (int i = 0; i < usersInRoom.size(); i++) {
             if (flag<4){
                 UserChatRoom userChatRoom = usersInRoom.get(i);
-                sb.append(userChatRoom.getUser().getName());
-                flag++;
+                // 방에 있는 유저가 나일 경우
+                if (userChatRoom.getUser().getId() == userId) {
+                    flag++;
+                    continue;
+                }else {
+                    // 방에 있는 유저가 나와 다를 경우
+                    sb.append(userChatRoom.getUser().getName());
+                    flag++;
+                }
             }
 
             if(flag==4||i==usersInRoom.size()-1){
