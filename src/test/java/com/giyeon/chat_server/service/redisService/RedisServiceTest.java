@@ -1,0 +1,164 @@
+package com.giyeon.chat_server.service.redisService;
+
+import com.giyeon.chat_server.component.IdGenerator;
+import com.giyeon.chat_server.entity.main.ChatRoom;
+import com.giyeon.chat_server.entity.main.Role;
+import com.giyeon.chat_server.entity.main.User;
+import com.giyeon.chat_server.entity.main.UserChatRoom;
+import com.giyeon.chat_server.repository.main.RoomRepository;
+import com.giyeon.chat_server.repository.main.UserChatRoomRepository;
+import com.giyeon.chat_server.repository.main.UserRepository;
+import com.giyeon.chat_server.repository.message.MessageRepository;
+import com.giyeon.chat_server.service.redisService.repositoryService.MainRepositoryService;
+import com.giyeon.chat_server.service.redisService.repositoryService.MessageRepositoryService;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.RedisTemplate;
+
+import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+@SpringBootTest
+class RedisServiceTest {
+
+    @Autowired
+    private RedisService redisService;
+
+    @Autowired
+    private RedisTemplate<String,Object> redisTemplate;
+
+    @Autowired
+    private MainRepositoryService mainRepositoryService;
+
+    @Autowired
+    private RoomRepository roomRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private UserChatRoomRepository userChatRoomRepository;
+
+    @Autowired
+    private MessageRepositoryService messageRepositoryService;
+
+    @Autowired
+    private IdGenerator idGenerator;
+
+    @Test
+    void getLastMsgIdInRoomTest_no_memory_data(){
+
+        //given
+        User user1 = createUser(1L, "user1");
+        User user2 = createUser(2L, "user2");
+
+        ChatRoom room = createRoomWithUsers(1L, user1, user2);
+        //채팅방에 참여하고 있는 유저 Id를 리스트로 따로 만들어 놓음
+        List<Long> userIdList = List.of(1L,2L);
+
+        //when
+        List<Long> currentJoinedUsers = redisService.getCurrentJoinedUsers(room.getId());
+        Set<Object> members = redisTemplate.opsForSet().members("room:" + room.getId() + ":joinedUser");
+
+        //then
+        //loop 돌면서 1L이랑 2L이 리스트에 있는지 확인
+        for(Long userId : userIdList){
+            assertThat(currentJoinedUsers).contains(userId);
+        }
+
+        //redis에도 적혀져 있는지 확인
+        assertThat(members).size().isEqualTo(2);
+
+        for(Object member : members){
+            assertThat((String) member).isIn("1", "2");
+        }
+
+    }
+
+    @Test
+    void getLastMsgIdInRoomTest_with_memory_data(){
+
+        //given
+        User user1 = createUser(1L, "user1");
+        User user2 = createUser(2L, "user2");
+
+        ChatRoom room = createRoomWithUsers(1L, user1, user2);
+        //채팅방에 참여하고 있는 유저 Id를 리스트로 따로 만들어 놓음
+        List<Long> userIdList = List.of(1L,2L);
+        redisTemplate.opsForSet().add("room:" + room.getId() + ":joinedUser","1");
+        redisTemplate.opsForSet().add("room:" + room.getId() + ":joinedUser","2");
+
+        //when
+        List<Long> currentJoinedUsers = redisService.getCurrentJoinedUsers(room.getId());
+        Set<Object> members = redisTemplate.opsForSet().members("room:" + room.getId() + ":joinedUser");
+
+        //then
+        //loop 돌면서 1L이랑 2L이 리스트에 있는지 확인
+        for(Long userId : userIdList){
+            assertThat(currentJoinedUsers).contains(userId);
+        }
+
+        //redis에도 적혀져 있는지 확인
+        assertThat(members).size().isEqualTo(2);
+
+        for(Object member : members){
+            assertThat((String) member).isIn("1", "2");
+        }
+
+
+    }
+
+
+    private User createUser(Long id, String name) {
+        User u = User.builder()
+                .id(id)
+                .name(name)
+                .email(name + "@example.com")
+                .userImageUrl("https://example.com/" + name + ".jpg")
+                .password("pass")
+                .userRole(Role.ROLE_USER)
+                .build();
+        return userRepository.save(u);
+    }
+
+    private ChatRoom createRoomWithUsers(Long roomId, User... users) {
+        ChatRoom room = ChatRoom.builder()
+                .id(roomId)
+                .lastMessageId(0L)
+                .createdAt(ZonedDateTime.now())
+                .build();
+        roomRepository.save(room);
+
+        for (User u : users) {
+            UserChatRoom ucr = UserChatRoom.builder()
+                    .id(idGenerator.nextId())
+                    .user(u)
+                    .chatRoom(room)
+                    .isJoined(true)
+                    .leavedAt(null)
+                    .lastReadMessageId(0L)
+                    .build();
+            userChatRoomRepository.save(ucr);
+        }
+        return room;
+    }
+
+    @AfterEach
+    void tearDown() {
+        messageRepositoryService.deleteAll(1L);
+        messageRepositoryService.deleteAll(2L);
+        messageRepositoryService.deleteAll(3L);
+        userChatRoomRepository.deleteAll();
+        userRepository.deleteAll();
+        roomRepository.deleteAll();
+        redisTemplate.getConnectionFactory().getConnection().flushAll();
+
+    }
+
+
+}
