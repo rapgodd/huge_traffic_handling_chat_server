@@ -8,7 +8,6 @@ import com.giyeon.chat_server.entity.main.UserChatRoom;
 import com.giyeon.chat_server.repository.main.RoomRepository;
 import com.giyeon.chat_server.repository.main.UserChatRoomRepository;
 import com.giyeon.chat_server.repository.main.UserRepository;
-import com.giyeon.chat_server.repository.message.MessageRepository;
 import com.giyeon.chat_server.service.redisService.repositoryService.MainRepositoryService;
 import com.giyeon.chat_server.service.redisService.repositoryService.MessageRepositoryService;
 import org.junit.jupiter.api.AfterEach;
@@ -51,7 +50,7 @@ class RedisServiceTest {
     private IdGenerator idGenerator;
 
     @Test
-    void getLastMsgIdInRoomTest_no_memory_data(){
+    void getCurrentJoinedUsersTest_no_memory_data(){
 
         //given
         User user1 = createUser(1L, "user1");
@@ -81,7 +80,7 @@ class RedisServiceTest {
     }
 
     @Test
-    void getLastMsgIdInRoomTest_with_memory_data(){
+    void getCurrentJoinedUsersTest_with_memory_data(){
 
         //given
         User user1 = createUser(1L, "user1");
@@ -113,6 +112,50 @@ class RedisServiceTest {
 
     }
 
+    @Test
+    void addCurrentJoinedUserTest_no_memory_data(){
+        //given
+        User user1 = createUser(1L, "user1");
+        User user2 = createUser(2L, "user2");
+
+        ChatRoom room = createRoomWithUsers_no_joined(1L, user1, user2);
+        Long roomId = room.getId();
+
+        String key = "room:" + roomId + ":joinedUser";
+
+        //when
+        redisService.addCurrentJoinedUser(1L, 1L);
+        UserChatRoom user1ChatRoom = userChatRoomRepository.findUserChatRoomByUserIdAndRoomId(1L, 1L);
+
+        //then
+        assertThat(user1ChatRoom.getIsJoined()).isTrue();
+        assertThat(redisTemplate.opsForSet().members(key).size()).isEqualTo(1);
+
+    }
+
+
+    @Test
+    void addCurrentJoinedUserTest_with_memory_data(){
+        //given
+        User user1 = createUser(1L, "user1");
+        User user2 = createUser(2L, "user2");
+
+        ChatRoom room = createRoomWithUsers_no_joined(1L, user1, user2);
+        Long roomId = room.getId();
+
+        String key = "room:" + roomId + ":joinedUser";
+        redisTemplate.opsForSet().add(key, "1");
+
+        //when
+        redisService.addCurrentJoinedUser(2L, 1L);
+        UserChatRoom user2ChatRoom = userChatRoomRepository.findUserChatRoomByUserIdAndRoomId(2L, 1L);
+
+        //then
+        assertThat(user2ChatRoom.getIsJoined()).isTrue();
+        assertThat(redisTemplate.opsForSet().members(key).size()).isEqualTo(2);
+
+    }
+
 
     private User createUser(Long id, String name) {
         User u = User.builder()
@@ -140,6 +183,29 @@ class RedisServiceTest {
                     .user(u)
                     .chatRoom(room)
                     .isJoined(true)
+                    .leavedAt(null)
+                    .lastReadMessageId(0L)
+                    .build();
+            userChatRoomRepository.save(ucr);
+        }
+        return room;
+    }
+
+
+    private ChatRoom createRoomWithUsers_no_joined(Long roomId, User... users) {
+        ChatRoom room = ChatRoom.builder()
+                .id(roomId)
+                .lastMessageId(0L)
+                .createdAt(ZonedDateTime.now())
+                .build();
+        roomRepository.save(room);
+
+        for (User u : users) {
+            UserChatRoom ucr = UserChatRoom.builder()
+                    .id(idGenerator.nextId())
+                    .user(u)
+                    .chatRoom(room)
+                    .isJoined(false)
                     .leavedAt(null)
                     .lastReadMessageId(0L)
                     .build();
