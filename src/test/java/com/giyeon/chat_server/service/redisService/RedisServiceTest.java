@@ -156,6 +156,233 @@ class RedisServiceTest {
 
     }
 
+    @Test
+    void putUserLastMsgIdInRoom_no_memory_data(){
+        //given
+        User user1 = createUser(1L, "user1");
+        User user2 = createUser(2L, "user2");
+
+        ChatRoom room = createRoomWithUsers(1L, user1, user2);
+        Long roomId = room.getId();
+        String key = "user:" + user1.getId() + ":roomAndLastMsgId";
+
+        //when
+        redisService.putUserLastMsgIdInRoom(1L, roomId, "100");
+
+        //then
+        assertThat(redisTemplate.opsForHash().get(key, roomId.toString())).isEqualTo("100");
+    }
+
+    @Test
+    void putUserLastMsgIdInRoom_with_memory_data(){
+        //given
+        User user1 = createUser(1L, "user1");
+        User user2 = createUser(2L, "user2");
+
+        ChatRoom room = createRoomWithUsers(1L, user1, user2);
+        Long roomId = room.getId();
+        String key = "user:" + user1.getId() + ":roomAndLastMsgId";
+        redisTemplate.opsForHash().put(key, roomId.toString(), "50");
+
+        //when
+        redisService.putUserLastMsgIdInRoom(1L, roomId, "100");
+
+        //then
+        assertThat(redisTemplate.opsForHash().get(key, roomId.toString())).isEqualTo("100");
+        assertThat(mainRepositoryService.getLastMsgIdInUserChatRoom(user1.getId(), roomId)).isEqualTo(100L);
+    }
+
+    @Test
+    void putUsersLastMsgIdInRoom_with_memory_data(){
+        //given
+        User user1 = createUser(1L, "user1");
+        User user2 = createUser(2L, "user2");
+
+        ChatRoom room = createRoomWithUsers(1L, user1, user2);
+        Long roomId = room.getId();
+        String key = "user:" + user1.getId() + ":roomAndLastMsgId";
+        String key2 = "user:" + user2.getId() + ":roomAndLastMsgId";
+        redisTemplate.opsForHash().put(key, roomId.toString(), "50");
+
+        //when
+        redisService.putUsersLastMsgIdInRoom(List.of(user1.getId(), user2.getId()), roomId, "100");
+
+        //then
+        assertThat(redisTemplate.opsForHash().get(key, roomId.toString())).isEqualTo("100");
+        assertThat(redisTemplate.opsForHash().get(key2, roomId.toString())).isEqualTo("100");
+        assertThat(mainRepositoryService.getLastMsgIdInUserChatRoom(user1.getId(), roomId)).isEqualTo(100L);
+        assertThat(mainRepositoryService.getLastMsgIdInUserChatRoom(user2.getId(), roomId)).isEqualTo(100L);
+    }
+
+    @Test
+    void putUsersLastMsgIdInRoom_no_memory_data(){
+        //given
+        User user1 = createUser(1L, "user1");
+        User user2 = createUser(2L, "user2");
+
+        ChatRoom room = createRoomWithUsers(1L, user1, user2);
+        Long roomId = room.getId();
+        String key = "user:" + user1.getId() + ":roomAndLastMsgId";
+        String key2 = "user:" + user2.getId() + ":roomAndLastMsgId";
+
+        //when
+        redisService.putUsersLastMsgIdInRoom(List.of(user1.getId(), user2.getId()), roomId, "100");
+
+        //then
+        assertThat(redisTemplate.opsForHash().get(key, roomId.toString())).isEqualTo("100");
+        assertThat(redisTemplate.opsForHash().get(key2, roomId.toString())).isEqualTo("100");
+        assertThat(mainRepositoryService.getLastMsgIdInUserChatRoom(user1.getId(), roomId)).isEqualTo(100L);
+        assertThat(mainRepositoryService.getLastMsgIdInUserChatRoom(user2.getId(), roomId)).isEqualTo(100L);
+
+    }
+
+    @Test
+    void getUserLastReadMsgIdInRoom_no_memory_data() {
+        //given
+        User user1 = createUser(1L, "user1");
+        User user2 = createUser(2L, "user2");
+
+        ChatRoom room = createRoomWithUsers(1L, user1, user2);
+        Long roomId = room.getId();
+        String key = "user:" + user1.getId() + ":roomAndLastMsgId";
+
+        //when
+        Long lastMsgId = redisService.getUserLastReadMsgIdInRoom(user1.getId(), roomId);
+
+        //then
+        assertThat(lastMsgId).isEqualTo(0L);
+        assertThat(redisTemplate.opsForHash().get(key, roomId.toString())).isEqualTo("0");
+    }
+
+    @Test
+    void getLastMsgIdInRoom_no_memory_data() {
+        //given
+        User user1 = createUser(1L, "user1");
+        User user2 = createUser(2L, "user2");
+
+        ChatRoom room = createRoomWithUsers(1L, user1, user2);
+        Long roomId = room.getId();
+        String key = "room:" + roomId + ":lastMsgId";
+
+        //when
+        Long lastMsgId = redisService.getLastMsgIdInRoom(roomId);
+
+        //then
+        assertThat(lastMsgId).isEqualTo(0L);
+        assertThat(redisTemplate.opsForValue().get(key)).isEqualTo("0");
+    }
+
+    @Test
+    void getUserLastReadMsgIdInRoom_with_memory_data() {
+        //given
+        User user1 = createUser(1L, "user1");
+        User user2 = createUser(2L, "user2");
+
+        ChatRoom room = createRoomWithUsers(1L, user1, user2);
+        Long roomId = room.getId();
+        String key = "user:" + user1.getId() + ":roomAndLastMsgId";
+        redisTemplate.opsForHash().put(key, roomId.toString(), "100");
+
+        //when
+        Long lastMsgId = redisService.getUserLastReadMsgIdInRoom(user1.getId(), roomId);
+
+        //then
+        assertThat(lastMsgId).isEqualTo(100L);
+    }
+
+    @Test
+    void getLastMsgIdInRoom_with_memory_data() {
+        //given
+        User user1 = createUser(1L, "user1");
+        User user2 = createUser(2L, "user2");
+
+        ChatRoom room = createRoomWithUsers(1L, user1, user2);
+        Long roomId = room.getId();
+        String key = "room:" + roomId + ":lastMsgId";
+        redisTemplate.opsForValue().set(key, "100");
+
+        //when
+        Long lastMsgId = redisService.getLastMsgIdInRoom(roomId);
+
+        //then
+        assertThat(lastMsgId).isEqualTo(100L);
+    }
+
+    @Test
+    void putLastMsgIdInRoom_no_memory_data() {
+        //given
+        User user1 = createUser(1L, "user1");
+        User user2 = createUser(2L, "user2");
+
+        ChatRoom room = createRoomWithUsers(1L, user1, user2);
+        Long roomId = room.getId();
+        String key = "room:" + roomId + ":lastMsgId";
+
+        //when
+        redisService.putLastMsgIdInRoom(roomId, "100");
+
+        //then
+        assertThat(redisTemplate.opsForValue().get(key)).isEqualTo("100");
+        assertThat(mainRepositoryService.getLastMsgIdInRoom(roomId)).isEqualTo(100L);
+    }
+
+    @Test
+    void putLastMsgIdInRoom_with_memory_data() {
+        //given
+        User user1 = createUser(1L, "user1");
+        User user2 = createUser(2L, "user2");
+
+        ChatRoom room = createRoomWithUsers(1L, user1, user2);
+        Long roomId = room.getId();
+        String key = "room:" + roomId + ":lastMsgId";
+        redisTemplate.opsForValue().set(key, "50");
+
+        //when
+        redisService.putLastMsgIdInRoom(roomId, "100");
+
+        //then
+        assertThat(redisTemplate.opsForValue().get(key)).isEqualTo("100");
+        assertThat(mainRepositoryService.getLastMsgIdInRoom(roomId)).isEqualTo(100L);
+    }
+
+    @Test
+    void removeCurrentJoinedUser_no_memory_data() {
+        //given
+        User user1 = createUser(1L, "user1");
+        User user2 = createUser(2L, "user2");
+
+        ChatRoom room = createRoomWithUsers(1L, user1, user2);
+        Long roomId = room.getId();
+        String key = "room:" + roomId + ":joinedUser";
+
+        //when
+        redisService.removeJoinedUserInRoom(1L, 1L);
+
+        //then
+        assertThat(redisTemplate.opsForSet().members(key)).isEmpty();
+        assertThat(redisTemplate.opsForSet().members(key).size()).isEqualTo(0);
+    }
+
+    @Test
+    void removeCurrentJoinedUser_with_memory_data() {
+        //given
+        User user1 = createUser(1L, "user1");
+        User user2 = createUser(2L, "user2");
+
+        ChatRoom room = createRoomWithUsers(1L, user1, user2);
+        Long roomId = room.getId();
+        String key = "room:" + roomId + ":joinedUser";
+        redisTemplate.opsForSet().add(key, "1");
+        redisTemplate.opsForSet().add(key, "2");
+
+        //when
+        redisService.removeJoinedUserInRoom(1L, 1L);
+
+        //then
+        assertThat(redisTemplate.opsForSet().members(key).size()).isEqualTo(1);
+        assertThat(redisTemplate.opsForSet().members(key)).contains("2");
+        assertThat(redisTemplate.opsForSet().members(key)).doesNotContain("1");
+    }
 
     private User createUser(Long id, String name) {
         User u = User.builder()
