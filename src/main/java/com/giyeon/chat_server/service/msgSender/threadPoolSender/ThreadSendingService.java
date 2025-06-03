@@ -1,4 +1,4 @@
-package com.giyeon.chat_server.service;
+package com.giyeon.chat_server.service.msgSender.threadPoolSender;
 
 import com.github.snksoft.crc.CRC;
 import com.giyeon.chat_server.component.GrpcChatClient;

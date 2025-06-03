@@ -1,5 +1,6 @@
 package com.giyeon.chat_server.dto;
 
+import lombok.Builder;
 import lombok.Data;
 
 import java.time.ZonedDateTime;
@@ -12,7 +13,15 @@ public class ChatDto {
     private ZonedDateTime createdAt;
     private Long senderId;
     private String senderName;
-    private Boolean reply;
-    private Long replyingTo;
+    private int joinedUser;
 
+    @Builder
+    public ChatDto(String message, Long roomId, ZonedDateTime createdAt, Long senderId, String senderName, int joinedUser){
+        this.joinedUser = joinedUser;
+        this.message = message;
+        this.roomId = roomId;
+        this.createdAt = createdAt;
+        this.senderName = senderName;
+        this.senderId = senderId;
+    }
 }
