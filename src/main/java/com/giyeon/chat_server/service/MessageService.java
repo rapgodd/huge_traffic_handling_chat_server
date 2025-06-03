@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.giyeon.chat_server.dto.ChatDto;
 import com.giyeon.chat_server.dto.RoomUsersDto;
+import com.giyeon.chat_server.exception.MsgDataSaveException;
 import com.giyeon.chat_server.service.msgSender.threadPoolSender.ThreadSendingService;
 import com.giyeon.chat_server.service.redisService.RedisService;
 import com.giyeon.chat_server.service.redisService.repositoryService.MainRepositoryService;
@@ -14,6 +15,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.TextMessage;
 
@@ -39,14 +43,24 @@ public class MessageService{
     @Autowired
     private RedisService redisService;
 
+    @Retryable(
+            value = {MsgDataSaveException.class},
+            maxAttempts = 2,
+            backoff = @Backoff(delay = 500)
+    )
     public void sendMessage(ChatDto chatDto) {
 
         Long roomId = chatDto.getRoomId();
         String payload = chatDto.getMessage();
         Long senderId = chatDto.getSenderId();
         ZonedDateTime createdAt = ZonedDateTime.now();
+        Long msgId;
 
-        Long msgId = messageRepositoryService.insertMessage(roomId, payload, senderId, createdAt);
+        try {
+            msgId = messageRepositoryService.insertMessage(roomId, payload, senderId, createdAt);
+        } catch (RuntimeException e) {
+            throw MsgDataSaveException.EXCEPTION;
+        }
 
         threadPoolExecutor.submit(()->{
             String json;
@@ -83,6 +97,13 @@ public class MessageService{
         });
 
     }
+
+    @Recover
+    public void recover(MsgDataSaveException e, ChatDto chatDto) {
+        log.error("sendMessage 재시도 모두 실패: {}", e.getMessage(), e);
+        throw new RuntimeException("메시지 전송 실패, 잠시 후 다시 시도해 주세요", e);
+    }
+
 
     private void sendJoinedRemoteUsers(List<Long> remoteSessionUsersList, Long roomId, String json) {
         for (Long id : remoteSessionUsersList) {
