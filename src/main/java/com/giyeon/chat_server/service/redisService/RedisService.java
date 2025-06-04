@@ -94,14 +94,14 @@ public class RedisService {
             return Long.valueOf((String) raw);
         }
 
-        Long lastMsgIdInUserChatRoom = mainRepositoryService.getLastMsgIdInUserChatRoom(userId, roomId);
+        String lastMsgIdInUserChatRoom = String.valueOf(mainRepositoryService.getLastMsgIdInUserChatRoom(userId, roomId));
         redisTemplate.opsForHash().put(key,roomId.toString(),lastMsgIdInUserChatRoom);
 
         if (isNewKey) {
             redisTemplate.expire(key, 1, TimeUnit.HOURS);
         }
 
-        return lastMsgIdInUserChatRoom;
+        return Long.valueOf(lastMsgIdInUserChatRoom);
     }
 
     /**
@@ -126,7 +126,7 @@ public class RedisService {
             String[] members = joinedFromDb.stream()
                     .map(String::valueOf)
                     .toArray(String[]::new);
-            redisTemplate.opsForSet().add(key, members);
+            redisTemplate.opsForSet().add(key, (Object[]) members);
         }
 
 

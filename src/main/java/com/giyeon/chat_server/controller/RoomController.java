@@ -7,10 +7,7 @@ import com.giyeon.chat_server.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -55,6 +52,15 @@ public class RoomController {
         return ApiResponseDto.builder()
                 .code(200)
                 .data(messages)
+                .build();
+    }
+
+    @PutMapping("/api/rooms/{roomId}/close")
+    public ApiResponseDto<?> closeRoom(@PathVariable Long roomId) {
+        roomService.closeRoom(roomId);
+        return ApiResponseDto.builder()
+                .code(200)
+                .data("successfully closed the room")
                 .build();
     }
 

@@ -511,6 +511,9 @@ public class RoomService {
         return roomMessageListDtos;
     }
 
-        return returnList;
+    public void closeRoom(Long roomId) {
+        Long userId = JwtUtil.getUserId(jwtProperty.getSecret());
+        redisService.removeJoinedUserInRoom(userId, roomId);
+        mainRepositoryService.setUserChatRoomToClose(roomId, userId);
     }
 }
