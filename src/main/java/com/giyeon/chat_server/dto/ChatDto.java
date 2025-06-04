@@ -1,5 +1,6 @@
 package com.giyeon.chat_server.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
 import lombok.Data;
 
@@ -8,6 +9,7 @@ import java.time.ZonedDateTime;
 @Data
 public class ChatDto {
 
+    @NotBlank(message = "메시지는 필수 입력입니다.")
     private String message;
     private Long roomId;
     private ZonedDateTime createdAt;

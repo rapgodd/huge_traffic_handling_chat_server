@@ -43,12 +43,13 @@ public class User implements UserDetails {
     }
 
     @Builder
-    public User(Long id, String name, String email, String password, Role userRole) {
+    public User(Long id, String name, String email, String password, Role userRole, String userImageUrl) {
         this.id = id;
         this.name = name;
         this.email = email;
         this.password = password;
         this.userRole = userRole;
+        this.userImageUrl = userImageUrl;
     }
 
 }
