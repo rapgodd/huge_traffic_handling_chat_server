@@ -1,5 +1,6 @@
 package com.giyeon.chat_server.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
 
@@ -13,6 +14,7 @@ public class RoomMessageListDto {
     private String message;
     private ZonedDateTime createdAt;
     private int unreadCount;
+    @JsonProperty("isMe")
     private boolean isMe;
 
     @Builder

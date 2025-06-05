@@ -7,6 +7,7 @@ import com.giyeon.chat_server.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,49 +19,53 @@ public class RoomController {
 
     private final RoomService roomService;
 
-    @PostMapping("/api/rooms/{roomId}/exit")
-    public ApiResponseDto<?> leaveRoom(@PathVariable Long roomId) {
+    @DeleteMapping("/api/rooms/{roomId}/exit")
+    public ResponseEntity<?> leaveRoom(@PathVariable Long roomId) {
         roomService.leaveRoom(roomId);
-        return ApiResponseDto.builder()
-                .code(200)
-                .data("successfully leaved the room")
+
+        return ResponseEntity
+                .status(204)
                 .build();
     }
 
     @PostMapping("/api/rooms/{roomId}/join")
-    public ApiResponseDto<?> joinRoom(@PathVariable Long roomId) {
+    public ResponseEntity<?> joinRoom(@PathVariable Long roomId) {
         roomService.joinRoom(roomId);
-        return ApiResponseDto.builder()
-                .code(200)
-                .data("successfully joined the room")
+        return ResponseEntity
+                .status(204)
                 .build();
     }
 
     @GetMapping("/api/rooms/{roomId}")
-    public ApiResponseDto<?> getRoomDetails(@PathVariable Long roomId) {
+    public ResponseEntity<?> getRoomDetails(@PathVariable Long roomId) {
         RoomDetailsDto roomDetailsDto = roomService.getRoomDetails(roomId);
-        return ApiResponseDto.builder()
-                .code(200)
-                .data(roomDetailsDto)
-                .build();
+
+        return ResponseEntity.status(200)
+                .body(ApiResponseDto.builder()
+                        .code(200)
+                        .data(roomDetailsDto)
+                        .build());
     }
 
     @GetMapping("/api/rooms/{roomId}/messages")
-    public ApiResponseDto<?> getRoomMessages(@PageableDefault(size = 50, page = 0) Pageable pageable,
+    public ResponseEntity<?> getRoomMessages(@PageableDefault(size = 50, page = 0) Pageable pageable,
                                                  @PathVariable Long roomId) {
         List<RoomMessageListDto> messages = roomService.getRoomMessages(roomId, pageable);
-        return ApiResponseDto.builder()
-                .code(200)
-                .data(messages)
-                .build();
+
+        return ResponseEntity.status(200)
+                .body(ApiResponseDto.builder()
+                        .code(200)
+                        .data(messages)
+                        .build());
+
     }
 
     @PutMapping("/api/rooms/{roomId}/close")
-    public ApiResponseDto<?> closeRoom(@PathVariable Long roomId) {
+    public ResponseEntity<?> closeRoom(@PathVariable Long roomId) {
         roomService.closeRoom(roomId);
-        return ApiResponseDto.builder()
-                .code(200)
-                .data("successfully closed the room")
+
+        return ResponseEntity
+                .status(204)
                 .build();
     }
 
