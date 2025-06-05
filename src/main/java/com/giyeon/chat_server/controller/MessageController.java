@@ -1,11 +1,11 @@
 package com.giyeon.chat_server.controller;
 
-import com.giyeon.chat_server.dto.ApiResponseDto;
 import com.giyeon.chat_server.dto.ChatDto;
 import com.giyeon.chat_server.service.MessageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
@@ -16,11 +16,11 @@ public class MessageController {
     private final MessageService messageService;
 
     @PostMapping("/api/messages")
-    public ApiResponseDto<?> sendMessage(@RequestBody @Valid ChatDto chatDto) {
+    public ResponseEntity<?> sendMessage(@RequestBody @Valid ChatDto chatDto) {
         messageService.sendMessage(chatDto);
-        return ApiResponseDto.builder()
-                .code(200)
-                .data("ok")
+
+        return ResponseEntity
+                .status(204)
                 .build();
     }
 
