@@ -7,6 +7,7 @@ import com.giyeon.chat_server.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,22 +23,22 @@ public class UserController {
     private final RoomService roomService;
 
     @GetMapping("/api/me/rooms")
-    public ApiResponseDto<?> getMyRooms(@PageableDefault(size = 50, page = 0) Pageable pageable) {
+    public ResponseEntity<?> getMyRooms(@PageableDefault(size = 50, page = 0) Pageable pageable) {
 
         List<RoomInfoDto> userRooms = roomService.getUserRooms(pageable);
 
-        return ApiResponseDto.builder()
-                .code(200)
-                .data(userRooms)
-                .build();
+        return ResponseEntity.status(200)
+                .body(ApiResponseDto.builder()
+                        .code(200)
+                        .data(userRooms)
+                        .build());
     }
 
     @PostMapping("/api/users/rooms")
-    public ApiResponseDto<?> createRoom(@RequestBody RoomCreateDto roomCreateDto) {
+    public ResponseEntity<?> createRoom(@RequestBody RoomCreateDto roomCreateDto) {
         roomService.createRoom(roomCreateDto);
-        return ApiResponseDto.builder()
-                .code(200)
-                .data("successfully created the room")
+
+        return ResponseEntity.status(204)
                 .build();
     }
 
