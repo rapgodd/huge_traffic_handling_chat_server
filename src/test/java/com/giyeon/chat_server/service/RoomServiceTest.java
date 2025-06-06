@@ -63,8 +63,6 @@ class RoomServiceTest {
     @Autowired
     private UserRepository userRepository;
     @Autowired
-    private MessageRepository messageRepository;
-    @Autowired
     private IdGenerator idGenerator;
     @Autowired
     private MessageRepositoryService messageService;
@@ -232,16 +230,55 @@ class RoomServiceTest {
 
     }
 
+    @Test
+    @Tag("exitRoom")
+    void exitRoom(){
+        //given
+        User user1 = createUser(1L, "user1");
+        User user2 = createUser(2L, "user2");
 
-    @AfterEach
-    void cleanup(TestInfo testInfo) {
-        if (testInfo.getTags().contains("createRoom")) {
-            messageRepository.deleteAll();
-            userChatRoomRepository.deleteAll();
-            userRepository.deleteAll();
-            roomRepository.deleteAll();
-            redisTemplate.delete("user:1:roomAndLastMsgId");
-            redisTemplate.delete("user:2:roomAndLastMsgId");
+        ChatRoom chatRoom = ChatRoom.builder()
+                .id(idGenerator.nextId())
+                .roomName("testRoom")
+                .roomImageUrl("img")
+                .lastMessageId(0L)
+                .createdAt(ZonedDateTime.now())
+                .build();
+        roomRepository.save(chatRoom);
+
+        UserChatRoom userChatRoom1 = UserChatRoom.builder()
+                .user(user1)
+                .chatRoom(chatRoom)
+                .isJoined(true)
+                .lastReadMessageId(0L)
+                .id(idGenerator.nextId())
+                .build();
+        userChatRoomRepository.save(userChatRoom1);
+
+        UserChatRoom userChatRoom2 = UserChatRoom.builder()
+                .user(user2)
+                .chatRoom(chatRoom)
+                .isJoined(true)
+                .lastReadMessageId(0L)
+                .id(idGenerator.nextId())
+                .build();
+        userChatRoomRepository.save(userChatRoom2);
+        redisTemplate.opsForSet().add("room:" + chatRoom.getId() + ":joinedUser", String.valueOf(user1.getId()), String.valueOf(user2.getId()));
+
+        //when
+        roomService.leaveRoom(chatRoom.getId());
+        UserChatRoom user1ChatRoom = mainRepositoryService.findUserChatRoom(userChatRoom1.getId());
+        UserChatRoom user2ChatRoom = mainRepositoryService.findUserChatRoom(userChatRoom2.getId());
+
+        //then
+        Assertions.assertTrue(user1ChatRoom.getLeavedAt() != null);
+        Assertions.assertTrue(user2ChatRoom.getLeavedAt() == null);
+        Assertions.assertTrue(!user1ChatRoom.getIsJoined());
+        Assertions.assertTrue(user2ChatRoom.getIsJoined());
+        Assertions.assertTrue(redisTemplate.opsForSet().members("room:" + chatRoom.getId() + ":joinedUser").size() == 1);
+
+        BDDMockito.willDoNothing().given(joinMsgSenderService).sendJoinMsgToLocal(anyList(),anyLong(),anyLong());
+    }
 
     @Test
     @Tag("closeRoom")
@@ -296,6 +333,7 @@ class RoomServiceTest {
         Room2Data r3Data = insertMessagesReturnRoom2Data(r3, 4L, 5);
         Room2Data r4Data = insertMessagesReturnRoom2Data(r4, 1L, 5);
         RoomData r5Data = insertMessages(r5, 2L, 5);
+
         // userChatROom에 마지막 메시지 id 업데이트
         updateUcrLastMsg(r1, r1Data);
         updateUcrLastMsg(r2, r2Data);
@@ -414,6 +452,28 @@ class RoomServiceTest {
         return room;
     }
 
+    private ChatRoom createRoomWithUsers_isJoined_false(Long roomId, User... users) {
+        ChatRoom room = ChatRoom.builder()
+                .id(roomId)
+                .lastMessageId(0L)
+                .createdAt(ZonedDateTime.now())
+                .build();
+        roomRepository.save(room);
+
+        for (User u : users) {
+            UserChatRoom ucr = UserChatRoom.builder()
+                    .id(idGenerator.nextId())
+                    .user(u)
+                    .chatRoom(room)
+                    .isJoined(false)
+                    .leavedAt(null)
+                    .lastReadMessageId(22L)
+                    .build();
+            userChatRoomRepository.save(ucr);
+        }
+        return room;
+    }
+
     private RoomData insertMessages(ChatRoom room, Long senderId, int count) {
         String lastMsg = null;
         ZonedDateTime lastTime = null;
@@ -509,10 +569,7 @@ class RoomServiceTest {
         userRepository.deleteAll();
         roomRepository.deleteAll();
 
-        redisTemplate.delete("user:1:roomAndLastMsgId");
-        redisTemplate.delete("user:2:roomAndLastMsgId");
-        redisTemplate.delete("room:1:joinedUser");
-        redisTemplate.delete("room:1:lastMsgId");
+        redisTemplate.getConnectionFactory().getConnection().flushAll();
 
     }
     @AfterAll
