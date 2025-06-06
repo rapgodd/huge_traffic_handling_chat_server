@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class IdGenerator {
-    private Snowflake snowflake = new Snowflake(1,1704067200000L);
+    private Snowflake snowflake = new Snowflake(1,1704067200000L, new TimeComponent());
 
     public Long nextId() {
         return snowflake.nextId();
