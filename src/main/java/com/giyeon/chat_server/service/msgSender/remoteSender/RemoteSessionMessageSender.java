@@ -1,4 +1,4 @@
-package com.giyeon.chat_server.service.msgSender.threadPoolSender;
+package com.giyeon.chat_server.service.msgSender.remoteSender;
 
 import com.github.snksoft.crc.CRC;
 import com.giyeon.chat_server.component.GrpcChatClient;
@@ -16,7 +16,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 @Service
 @Slf4j
-public class ThreadSendingService {
+public class RemoteSessionMessageSender {
 
     private final BlockingQueue<GrpcMessage> messageQueue1;
     private final BlockingQueue<GrpcMessage> messageQueue2;
@@ -25,8 +25,8 @@ public class ThreadSendingService {
     private final HashMap<Integer,BlockingQueue<GrpcMessage>> messageQueueMap;
     private final ThreadPoolExecutor threadPoolExecutor;
 
-    public ThreadSendingService(GrpcChatClient grpcChatClient,
-                                @Qualifier("extractExecutor")ThreadPoolExecutor threadPoolExecutor) {
+    public RemoteSessionMessageSender(GrpcChatClient grpcChatClient,
+                                      @Qualifier("extractExecutor")ThreadPoolExecutor threadPoolExecutor) {
         this.grpcChatClient = grpcChatClient;
         this.threadPoolExecutor = threadPoolExecutor;
         this.messageQueue1 = new LinkedBlockingQueue<>(5000);

@@ -28,6 +28,11 @@ public class MainRepositoryService {
     public RoomUsersDto getRoom(Long roomId){
         return new RoomUsersDto(roomRepository.findUsersInRoom(roomId).getUserChatRooms());
     }
+    @Transactional(readOnly = false)
+    public UserChatRoom findUserChatRoom(Long userChatRoomId) {
+        UserChatRoom userChatRoom = userChatRoomRepository.findById(userChatRoomId).get();
+        return userChatRoom;
+    }
 
     @Transactional(readOnly = false)
     public List<UserChatRoom> getUserChatRooms(Long userId, Pageable pageable){
@@ -108,7 +113,7 @@ public class MainRepositoryService {
     }
 
     @Transactional(readOnly = false)
-    public void updateUserChatROomToJoined(Long roomId, Long userId) {
+    public void updateUserChatRoomToJoined(Long roomId, Long userId) {
         UserChatRoom userChatRoom = userChatRoomRepository.findUserInRoom(userId, roomId);
         userChatRoom.updateIsJoined(true);
     }

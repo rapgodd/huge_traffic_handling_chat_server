@@ -1,6 +1,6 @@
-package com.giyeon.chat_server.service.msgSender;
+package com.giyeon.chat_server.service.msgSender.localSender;
 
-import com.giyeon.chat_server.exception.SessionSendException;
+import com.giyeon.chat_server.exception.customException.SessionSendException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.retry.annotation.Backoff;
@@ -15,7 +15,7 @@ import java.io.IOException;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class WebsocketSender {
+public class GrpcWebsocketSender {
 
     @Retryable(
             value = SessionSendException.class,

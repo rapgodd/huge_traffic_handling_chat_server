@@ -2,29 +2,23 @@ package com.giyeon.chat_server.service;
 
 import com.giyeon.chat_server.CommunicationServiceGrpc;
 import com.giyeon.chat_server.Message;
-import com.giyeon.chat_server.exception.NotFoundException;
-import com.giyeon.chat_server.exception.SessionSendException;
-import com.giyeon.chat_server.service.msgSender.WebsocketSender;
+import com.giyeon.chat_server.exception.customException.NotFoundException;
+import com.giyeon.chat_server.exception.customException.SessionSendException;
+import com.giyeon.chat_server.service.msgSender.localSender.GrpcWebsocketSender;
 import com.giyeon.chat_server.ws.SessionRegistry;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.server.service.GrpcService;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Recover;
-import org.springframework.retry.annotation.Retryable;
-import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
-
-import java.io.IOException;
 
 @Slf4j
 @GrpcService
 @RequiredArgsConstructor
-public class HandleGivenGrpcService extends CommunicationServiceGrpc.CommunicationServiceImplBase {
+public class GrpcToWebSocketBridge extends CommunicationServiceGrpc.CommunicationServiceImplBase {
 
     private final SessionRegistry sessionRegistry;
-    private final WebsocketSender websocketSender;
+    private final GrpcWebsocketSender grpcWebsocketSender;
 
     // 호출 시점
     // 다른 Spring 서버에서 방 안에 있는 유저를
@@ -41,7 +35,7 @@ public class HandleGivenGrpcService extends CommunicationServiceGrpc.Communicati
 
         try {
             WebSocketSession webSocketSession = sessionRegistry.getUserSession(userId);
-            websocketSender.sendToWebSocket(userId,request.getContent(),webSocketSession);
+            grpcWebsocketSender.sendToWebSocket(userId,request.getContent(),webSocketSession);
 
             responseObserver.onNext(
                     Message.SendMessageResponse.newBuilder()

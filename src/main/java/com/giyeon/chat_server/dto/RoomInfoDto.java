@@ -16,12 +16,10 @@ public class RoomInfoDto {
     private int unreadCount;
     private int joinedUserCount;
     private String lastMessage;
-    private ZonedDateTime leavedAt;
     private ZonedDateTime lastMessageTime;
 
     @Builder
-    public RoomInfoDto(String roomName, List<String> roomImageUrl, Long roomId, int unreadCount, int joinedUserCount, String lastMessage, ZonedDateTime lastMessageTime, ZonedDateTime leavedAt) {
-        this.leavedAt = leavedAt;
+    public RoomInfoDto(String roomName, List<String> roomImageUrl, Long roomId, int unreadCount, int joinedUserCount, String lastMessage, ZonedDateTime lastMessageTime) {
         this.roomName = roomName;
         this.roomImageUrl = roomImageUrl;
         this.roomId = roomId;

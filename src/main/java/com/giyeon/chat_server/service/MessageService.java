@@ -4,8 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.giyeon.chat_server.dto.ChatDto;
 import com.giyeon.chat_server.dto.RoomUsersDto;
-import com.giyeon.chat_server.exception.MsgDataSaveException;
-import com.giyeon.chat_server.service.msgSender.threadPoolSender.ThreadSendingService;
+import com.giyeon.chat_server.exception.customException.MsgDataSaveException;
+import com.giyeon.chat_server.service.msgSender.remoteSender.RemoteSessionMessageSender;
 import com.giyeon.chat_server.service.redisService.RedisService;
 import com.giyeon.chat_server.service.redisService.repositoryService.MainRepositoryService;
 import com.giyeon.chat_server.service.redisService.repositoryService.MessageRepositoryService;
@@ -39,7 +39,7 @@ public class MessageService{
     private RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
     private final ThreadPoolExecutor threadPoolExecutor;
-    private final ThreadSendingService threadSendingService;
+    private final RemoteSessionMessageSender remoteSessionMessageSender;
     @Autowired
     private RedisService redisService;
 
@@ -109,7 +109,7 @@ public class MessageService{
         for (Long id : remoteSessionUsersList) {
             String IP = (String)redisTemplate.opsForValue().get(String.valueOf(id));
             if(IP!=null){
-                threadSendingService.addMessageToQueue(json,IP.split(":")[0],Integer.parseInt(IP.split(":")[1]), roomId,id);
+                remoteSessionMessageSender.addMessageToQueue(json,IP.split(":")[0],Integer.parseInt(IP.split(":")[1]), roomId,id);
             }
         }
     }

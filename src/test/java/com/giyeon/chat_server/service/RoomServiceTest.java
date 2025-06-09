@@ -14,7 +14,7 @@ import com.giyeon.chat_server.repository.main.UserChatRoomRepository;
 import com.giyeon.chat_server.repository.main.UserRepository;
 import com.giyeon.chat_server.repository.message.MessageRepository;
 import com.giyeon.chat_server.service.msgSender.JoinMsgSenderService;
-import com.giyeon.chat_server.service.msgSender.threadPoolSender.ThreadSendingService;
+import com.giyeon.chat_server.service.msgSender.remoteSender.RemoteSessionMessageSender;
 import com.giyeon.chat_server.service.redisService.repositoryService.MainRepositoryService;
 import com.giyeon.chat_server.service.redisService.repositoryService.MessageRepositoryService;
 import com.giyeon.chat_server.util.JwtUtil;

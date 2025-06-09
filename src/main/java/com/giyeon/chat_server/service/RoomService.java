@@ -1,7 +1,5 @@
 package com.giyeon.chat_server.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.giyeon.chat_server.component.IdGenerator;
 import com.giyeon.chat_server.component.MsgKeySelector;
 import com.giyeon.chat_server.dto.*;
@@ -12,7 +10,6 @@ import com.giyeon.chat_server.entity.message.Message;
 import com.giyeon.chat_server.properties.DataSourceProperty;
 import com.giyeon.chat_server.properties.JwtProperty;
 import com.giyeon.chat_server.service.msgSender.JoinMsgSenderService;
-import com.giyeon.chat_server.service.msgSender.threadPoolSender.ThreadSendingService;
 import com.giyeon.chat_server.service.redisService.RedisService;
 import com.giyeon.chat_server.service.redisService.repositoryService.MainRepositoryService;
 import com.giyeon.chat_server.service.redisService.repositoryService.MessageRepositoryService;
@@ -24,7 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.web.socket.TextMessage;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
