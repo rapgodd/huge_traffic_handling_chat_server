@@ -1,6 +1,6 @@
 package com.giyeon.chat_server.ws;
 
-import com.giyeon.chat_server.exception.NotFoundException;
+import com.giyeon.chat_server.exception.customException.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
