@@ -35,8 +35,9 @@ public class UserChatRoom {
     }
 
     @Builder
-    public UserChatRoom(Long id, User user, ChatRoom chatRoom, ZonedDateTime leavedAt, Long lastReadMessageId) {
+    public UserChatRoom(Long id, User user, ChatRoom chatRoom, ZonedDateTime leavedAt, Long lastReadMessageId, Boolean isJoined) {
         this.id = id;
+        this.isJoined = isJoined;
         this.user = user;
         this.chatRoom = chatRoom;
         this.leavedAt = leavedAt;

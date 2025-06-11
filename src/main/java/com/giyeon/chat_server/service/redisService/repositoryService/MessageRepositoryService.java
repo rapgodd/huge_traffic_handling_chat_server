@@ -83,4 +83,10 @@ public class MessageRepositoryService {
     public void save(Long roomId, Message msg) {
         messageRepository.save(msg);
     }
+
+    @Sharding
+    @Transactional(value = "messagePlatformTransactionManager")
+    public void deleteAll(Long roomId){
+        messageRepository.deleteAll();
+    }
 }

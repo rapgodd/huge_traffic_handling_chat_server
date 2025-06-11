@@ -1,12 +1,7 @@
 package com.giyeon.chat_server.component;
 
-import com.github.snksoft.crc.CRC;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import java.nio.charset.StandardCharsets;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class MsgKeySelectorTest {
 
