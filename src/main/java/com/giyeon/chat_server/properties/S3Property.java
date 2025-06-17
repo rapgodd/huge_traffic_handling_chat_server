@@ -29,6 +29,7 @@ public class S3Property {
     @ToString
     public static class S3{
         private String bucket;
+        private String defaultImage;
     }
 
     @AllArgsConstructor

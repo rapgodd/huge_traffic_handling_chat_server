@@ -6,6 +6,7 @@ import com.giyeon.chat_server.dto.LoginRequestDto;
 import com.giyeon.chat_server.dto.SignupDto;
 import com.giyeon.chat_server.entity.main.Role;
 import com.giyeon.chat_server.entity.main.User;
+import com.giyeon.chat_server.properties.S3Property;
 import com.giyeon.chat_server.repository.main.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,6 +33,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final IdGenerator idGenerator;
     private final PasswordEncoder passwordEncoder;
+    private final S3Property s3Property;
 
     private static final Long ACCESS_TOKEN_EXPIRATION_TIME = 1000 * 60 * 30L;
     private static final Long REFRESH_TOKEN_EXPIRATION_TIME = 1000 * 60 * 60 * 24 * 30L;
@@ -100,6 +102,7 @@ public class AuthService {
                 .email(signupDto.getEmail())
                 .password(passwordEncoder.encode(signupDto.getPassword()))
                 .userRole(Role.ROLE_USER)
+                .userImageUrl(s3Property.getS3().getDefaultImage())
                 .build();
 
         userRepository.save(user);
