@@ -17,7 +17,7 @@ public class SignupDto {
     private String password;
 
     @NotBlank(message = "이름을 반드시 입력해야 합니다.")
-    @Size(min = 5, message = "이름은 최소 2자 이상이어야 합니다.")
+    @Size(min = 2, message = "이름은 최소 2자 이상이어야 합니다.")
     private String name;
 
 }

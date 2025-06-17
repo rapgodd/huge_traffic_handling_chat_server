@@ -25,8 +25,8 @@ public class GlobalExceptionHandler {
     }
 
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<?> handleValidationException(MethodArgumentNotValidException e, WebRequest request) {
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<?> handleValidationException(IllegalArgumentException e, WebRequest request) {
         ErrorResponseDto errorResponse = ErrorResponseDto.error(e,request);
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
