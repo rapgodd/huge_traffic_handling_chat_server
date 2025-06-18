@@ -45,6 +45,7 @@ public class MessageService{
 
     @Retryable(
             value = {MsgDataSaveException.class},
+            exclude = { IllegalArgumentException.class, RuntimeException.class },
             maxAttempts = 2,
             backoff = @Backoff(delay = 500)
     )
@@ -54,10 +55,13 @@ public class MessageService{
         String payload = chatDto.getMessage();
         Long senderId = chatDto.getSenderId();
         ZonedDateTime createdAt = ZonedDateTime.now();
+        String imageUrl = chatDto.getImageUrl();
         Long msgId;
 
+        validateMsgAndImg(payload, imageUrl);
+
         try {
-            msgId = messageRepositoryService.insertMessage(roomId, payload, senderId, createdAt);
+            msgId = messageRepositoryService.insertMessage(roomId, payload, senderId, createdAt, imageUrl);
         } catch (RuntimeException e) {
             throw MsgDataSaveException.EXCEPTION;
         }
@@ -69,7 +73,7 @@ public class MessageService{
             try {
                 json = objectMapper.writeValueAsString(chatDto);
             } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
+                throw new RuntimeException(e.getMessage());
             }
 
 
@@ -104,6 +108,11 @@ public class MessageService{
         throw new RuntimeException("메시지 전송 실패, 잠시 후 다시 시도해 주세요", e);
     }
 
+    private void validateMsgAndImg(String msg, String imageUrl) {
+        if ((msg == null || msg.isBlank()) && (imageUrl == null || imageUrl.isBlank())) {
+            throw new IllegalArgumentException("메세지 또는 이미지를 포함해야 합니다.");
+        }
+    }
 
     private void sendJoinedRemoteUsers(List<Long> remoteSessionUsersList, Long roomId, String json) {
         for (Long id : remoteSessionUsersList) {
@@ -119,7 +128,7 @@ public class MessageService{
             try {
                 sessionRegistry.getUserSession(id).sendMessage(new TextMessage(json));
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new RuntimeException(e.getMessage());
             }
         }
     }

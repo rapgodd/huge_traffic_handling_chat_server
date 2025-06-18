@@ -16,7 +16,7 @@ public class MessageController {
     private final MessageService messageService;
 
     @PostMapping("/api/messages")
-    public ResponseEntity<?> sendMessage(@RequestBody @Valid ChatDto chatDto) {
+    public ResponseEntity<?> sendMessage(@RequestBody ChatDto chatDto) {
         messageService.sendMessage(chatDto);
 
         return ResponseEntity

@@ -20,16 +20,18 @@ public class Message {
     private Long id;
 
     private String message;
+    private String imageUrl;
     private Long roomId;
     private Long senderId;
     private ZonedDateTime createdAt;
 
     @Builder
-    public Message(Long id,String message,Long roomId, Long senderId, ZonedDateTime createdAt) {
+    public Message(Long id,String message,Long roomId, Long senderId, ZonedDateTime createdAt, String imageUrl) {
         this.id = id;
         this.message = message;
         this.roomId = roomId;
         this.senderId = senderId;
         this.createdAt = createdAt;
+        this.imageUrl = imageUrl;
     }
 }

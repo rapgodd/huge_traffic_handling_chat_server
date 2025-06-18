@@ -26,7 +26,7 @@ public class MessageRepositoryService {
 
     @Sharding
     @Transactional(value = "messagePlatformTransactionManager")
-    public Long insertMessage(Long roomId, String message, Long senderId, ZonedDateTime createdAt) {
+    public Long insertMessage(Long roomId, String message, Long senderId, ZonedDateTime createdAt, String imageUrl) {
 
         Long id = idGenerator.nextId();
         Message userMessage = Message.builder()
@@ -35,10 +35,10 @@ public class MessageRepositoryService {
                 .roomId(roomId)
                 .senderId(senderId)
                 .createdAt(createdAt)
+                .imageUrl(imageUrl)
                 .build();
 
         messageRepository.save(userMessage);
-        System.out.println("insertMessage: " + userMessage);
         return id;
     }
 
