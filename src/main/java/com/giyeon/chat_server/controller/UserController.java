@@ -1,10 +1,12 @@
 package com.giyeon.chat_server.controller;
 
 import com.giyeon.chat_server.dto.ApiResponseDto;
+import com.giyeon.chat_server.dto.ImageUrlDto;
 import com.giyeon.chat_server.dto.RoomCreateDto;
 import com.giyeon.chat_server.dto.RoomInfoDto;
 import com.giyeon.chat_server.service.RoomService;
 import com.giyeon.chat_server.service.S3Service;
+import com.giyeon.chat_server.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -21,6 +23,7 @@ public class UserController {
 
     private final RoomService roomService;
     private final S3Service s3Service;
+    private final UserService userService;
 
     @GetMapping("/api/me/rooms")
     public ResponseEntity<?> getMyRooms(@PageableDefault(size = 50, page = 0) Pageable pageable) {
@@ -52,6 +55,16 @@ public class UserController {
                         .code(200)
                         .data(url)
                         .build());
+
+    }
+
+    @PatchMapping("/api/users/profileImage")
+    public ResponseEntity<?> updateProfileImage(@RequestBody ImageUrlDto imageUrlDto){
+
+        userService.uploadProfileImg(imageUrlDto);
+
+        return ResponseEntity.status(204)
+                .build();
 
     }
 

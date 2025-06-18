@@ -4,6 +4,7 @@ import com.giyeon.chat_server.dto.RoomCreateDto;
 import com.giyeon.chat_server.dto.RoomInfoDto;
 import com.giyeon.chat_server.service.RoomService;
 import com.giyeon.chat_server.service.S3Service;
+import com.giyeon.chat_server.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -34,6 +35,9 @@ class UserControllerTest {
     private RoomService roomService;
     @MockitoBean
     private S3Service s3Service;
+    @MockitoBean
+    private UserService userService;
+
 
     @Autowired
     private MockMvc mockMvc;

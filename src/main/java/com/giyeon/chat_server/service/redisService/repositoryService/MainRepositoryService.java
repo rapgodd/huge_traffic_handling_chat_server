@@ -7,6 +7,7 @@ import com.giyeon.chat_server.entity.main.User;
 import com.giyeon.chat_server.entity.main.UserChatRoom;
 import com.giyeon.chat_server.repository.main.RoomRepository;
 import com.giyeon.chat_server.repository.main.UserChatRoomRepository;
+import com.giyeon.chat_server.repository.main.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ public class MainRepositoryService {
     
     private final RoomRepository roomRepository;
     private final UserChatRoomRepository userChatRoomRepository;
+    private final UserRepository userRepository;
 
     @Transactional(readOnly = false)
     public RoomUsersDto getRoom(Long roomId){
@@ -130,5 +132,11 @@ public class MainRepositoryService {
         for (UserChatRoom userChatRoom : userChatRooms) {
             userChatRoom.updateNewMsgId(aLong);
         }
+    }
+
+    @Transactional(readOnly = false)
+    public void updateUserProfileImage(Long userId,String url) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("올바르지 않은 access token입니다."));
+        user.updateImage(url);
     }
 }

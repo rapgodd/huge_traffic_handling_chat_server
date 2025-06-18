@@ -52,4 +52,7 @@ public class User implements UserDetails {
         this.userImageUrl = userImageUrl;
     }
 
+    public void updateImage(String url) {
+        this.userImageUrl = url;
+    }
 }
