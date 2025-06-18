@@ -11,6 +11,7 @@ import java.time.ZonedDateTime;
 public class RoomMessageListDto {
     private String senderName;
     private String senderImageUrl;
+    private String messageImgUrl;
     private String message;
     private ZonedDateTime createdAt;
     private int unreadCount;
@@ -18,12 +19,13 @@ public class RoomMessageListDto {
     private boolean isMe;
 
     @Builder
-    public RoomMessageListDto(String senderName, String senderImageUrl, String message, ZonedDateTime createdAt, int unreadCount, boolean isMe) {
+    public RoomMessageListDto(String senderName, String senderImageUrl, String message, ZonedDateTime createdAt, int unreadCount, boolean isMe, String msgImgUrl) {
         this.senderName = senderName;
         this.senderImageUrl = senderImageUrl;
         this.message = message;
         this.createdAt = createdAt;
         this.unreadCount = unreadCount;
         this.isMe = isMe;
+        this.messageImgUrl = msgImgUrl;
     }
 }

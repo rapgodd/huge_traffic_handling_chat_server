@@ -341,12 +341,12 @@ public class RoomService {
         IdDistributionUtils.distributeRemoteAndLocal(currentJoinedUsers, localSessionUsersList,
                 remoteSessionUsersList, sessionRegistry, redisTemplate);
 
+        // 유저 리스트에 추가
+        redisService.addCurrentJoinedUser(userId, roomId);
         // 로컬 전송
         joinMsgSenderService.sendJoinMsgToLocal(localSessionUsersList, userId, lastReadMsgId);
         // 원격 전송
         joinMsgSenderService.sendJoinMsgToRemote(remoteSessionUsersList, roomId, userId, lastReadMsgId);
-        // 유저 리스트에 추가
-        redisService.addCurrentJoinedUser(userId, roomId);
         // 마지막 메세지 가져오기
         Long roomLastMsgId = redisService.getLastMsgIdInRoom(roomId);
         // redis & user 저장
@@ -493,6 +493,7 @@ public class RoomService {
                     .createdAt(msg.getCreatedAt())
                     .isMe(isMe)
                     .unreadCount(unreadCount)
+                    .msgImgUrl(msg.getImageUrl())
                     .senderName(sender.getName())
                     .senderImageUrl(sender.getUserImageUrl())
                     .build();
