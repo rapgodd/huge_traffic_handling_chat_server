@@ -7,7 +7,6 @@ import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
@@ -23,8 +22,8 @@ public class RedisTestConfig {
 
 
     @Bean
-    public LettuceConnectionFactory redisConn(){
-        return new LettuceConnectionFactory(new RedisStandaloneConfiguration("localhost", 4000));
+    public LettuceConnectionFactory redisConn(RedisProperties redisProperties){
+        return new LettuceConnectionFactory(new RedisStandaloneConfiguration(redisProperties.getHost(), redisProperties.getPort()));
     }
 
     @Bean
@@ -44,7 +43,7 @@ public class RedisTestConfig {
         Config config = new Config();
 
         config.useSingleServer().
-                setAddress("redis://" + "localhost" + ":" + "4000");
+                setAddress("redis://" + redisProperties.getHost() + ":" + redisProperties.getPort());
 
         return Redisson.create(config);
     }
