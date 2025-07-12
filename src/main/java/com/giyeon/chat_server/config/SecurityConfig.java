@@ -22,7 +22,8 @@ public class SecurityConfig {
     public static final String[] PERMIT_URLS = {
             "/api/auth/**",
             "/ws/**",
-            "/"
+            "/",
+            "/actuator/prometheus"
     };
 
 
